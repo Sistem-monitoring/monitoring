@@ -13,12 +13,12 @@ window.APP_INSTITUTIONS = [
     },
     {
         id: "rsud_ntb",
-        nama: "Klinik RSUD Provinsi NTB",
-        password_akses: "klinikntb123", // Kode unik untuk membuka portal ini
+        nama: "uniqhba",
+        password_akses: "bagu2026", // Kode unik untuk membuka portal ini
         database_provider: "firebase",
         firebase: {
-            url: "URL_FIREBASE_KLINIK_DI_SINI",
-            key: "KEY_FIREBASE_KLINIK_DI_SINI"
+            url: "https://uniqhba-f2a4e-default-rtdb.asia-southeast1.firebasedatabase.app",
+            key: "AIzaSyB6baepb5qABIqJljTOTbN80N_A43SxbT4"
         }
     }
 ];
