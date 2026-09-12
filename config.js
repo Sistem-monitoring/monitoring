@@ -6,14 +6,14 @@ const APP_INSTITUTIONS = [
         nama: "Universitas UNIQHBA",
         password_akses: "uniqhba2026", // Kode unik untuk membuka portal ini
         database_provider: "firebase",
-        supabase: {
+        firebase: {
             url: "https://uniqhba-f2a4e-default-rtdb.asia-southeast1.firebasedatabase.app",
             key: "AIzaSyB6baepb5qABIqJljTOTbN80N_A43SxbT4"
         }
     },
     {
         id: "rsud_ntb",
-        nama: "Klinik RSUD Provinsi NTB",
+        nama: "Klinik RSUD Provinsi N,
         password_akses: "klinikntb123", // Kode unik untuk membuka portal ini
         database_provider: "firebase",
         firebase: {
