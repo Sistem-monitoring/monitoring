@@ -7,8 +7,8 @@ const APP_INSTITUTIONS = [
         password_akses: "uniqhba2026", // Kode unik untuk membuka portal ini
         database_provider: "supabase",
         supabase: {
-            url: "URL_SUPABASE_UNIQHBA_DI_SINI",
-            key: "KEY_SUPABASE_UNIQHBA_DI_SINI"
+            url: "https://uniqhba-f2a4e-default-rtdb.asia-southeast1.firebasedatabase.app",
+            key: "AIzaSyB6baepb5qABIqJljTOTbN80N_A43SxbT4"
         }
     },
     {
