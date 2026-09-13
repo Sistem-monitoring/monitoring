@@ -787,15 +787,14 @@
                 <div class="card card-premium">
                     <h3 style="margin-bottom: 8px; color: var(--primary);"><i class="fa-solid fa-file-signature"></i> Surat Izin</h3>
                     
-                    <!-- 👇 DITAMBAHKAN flex-wrap: wrap; AGAR RAPI DI LAYAR HP 👇 -->
-                    <div style="display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;">
-                        <button class="btn-primary" onclick="startScannerIzin('keluar')" style="flex:1; min-width: 100px; font-size:0.78rem;"><i class="fa-solid fa-share-from-square"></i> Izin Keluar</button>
+                                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px;">
+                        <button class="btn-primary" onclick="startScannerIzin('keluar')" style="margin: 0; padding: 12px 4px; font-size:0.7rem;"><i class="fa-solid fa-share-from-square"></i> Keluar</button>
                         
-                        <!-- 👇 TAMBAHAN TOMBOL IZIN SAKIT 👇 -->
-                        <button class="btn-warning" onclick="startScannerIzin('sakit')" style="flex:1; min-width: 100px; font-size:0.78rem;"><i class="fa-solid fa-notes-medical"></i> Izin Sakit</button>
+                        <button class="btn-warning" onclick="startScannerIzin('sakit')" style="margin: 0; padding: 12px 4px; font-size:0.7rem;"><i class="fa-solid fa-notes-medical"></i> Sakit</button>
                         
-                        <button class="btn-primary" onclick="startScannerIzin('balik')" style="flex:1; min-width: 100px; background:var(--success); font-size:0.78rem;"><i class="fa-solid fa-right-to-bracket"></i> Balik</button>
+                        <button class="btn-success" onclick="startScannerIzin('balik')" style="margin: 0; padding: 12px 4px; font-size:0.7rem;"><i class="fa-solid fa-right-to-bracket"></i> Balik</button>
                     </div>
+
 
                    
                     <button class="btn-outline" onclick="stopScannerIzin()" id="btn-stop-camera-izin" style="justify-content:center; display:none; margin-bottom:14px; border-color:var(--danger); color:var(--danger);"><i class="fa-solid fa-stop"></i> Tutup Kamera</button>
@@ -1335,13 +1334,31 @@
         <h3 style="margin-bottom: 14px; color: var(--info);"><i class="fa-solid fa-expand"></i> Scan Absen Kelas</h3>
         <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:15px;">Arahkan kamera ke QR Code yang ditampilkan oleh Dosen di depan kelas. Pastikan GPS Anda aktif dan berada di area kampus.</p>
         
-        <div id="gps-status-mahasiswa" style="padding: 12px; border-radius: 10px; font-weight: bold; margin-bottom: 14px; display:flex; align-items:center; gap:8px; background:#f1f1f1; color:#333;">
+                <div id="gps-status-mahasiswa" style="padding: 12px; border-radius: 10px; font-weight: bold; margin-bottom: 14px; display:flex; align-items:center; gap:8px; background:#f1f1f1; color:#333;">
             <i class="fa-solid fa-spinner fa-spin"></i> Mengecek Lokasi Kampus...
         </div>
+
+        <!-- 👇 TAMBAHAN: OPSI STATUS KEHADIRAN MAHASISWA 👇 -->
+        <label style="color: var(--primary); font-size: 0.85rem; font-weight: bold; margin-bottom: 8px; display: block;">
+            <i class="fa-solid fa-user-check"></i> Pilih Status Kehadiran:
+        </label>
+        <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+            <label style="flex: 1; text-align: center; background: rgba(52, 199, 89, 0.15); padding: 10px 5px; border-radius: 10px; cursor: pointer; border: 1px solid var(--success); font-weight: bold; font-size: 0.8rem;">
+                <input type="radio" name="mhs_status_absen" value="Hadir" checked style="accent-color: var(--success); transform: scale(1.2);"> Hadir
+            </label>
+            <label style="flex: 1; text-align: center; background: rgba(243, 156, 18, 0.15); padding: 10px 5px; border-radius: 10px; cursor: pointer; border: 1px solid #F39C12; font-weight: bold; font-size: 0.8rem;">
+                <input type="radio" name="mhs_status_absen" value="Izin" style="accent-color: #F39C12; transform: scale(1.2);"> Izin
+            </label>
+            <label style="flex: 1; text-align: center; background: rgba(231, 76, 60, 0.15); padding: 10px 5px; border-radius: 10px; cursor: pointer; border: 1px solid var(--danger); font-weight: bold; font-size: 0.8rem;">
+                <input type="radio" name="mhs_status_absen" value="Sakit" style="accent-color: var(--danger); transform: scale(1.2);"> Sakit
+            </label>
+        </div>
+        <!-- 👆 SELESAI TAMBAHAN 👆 -->
 
         <button class="btn-primary" onclick="mulaiScanAbsenMahasiswa()" id="btn-scan-mhs" style="width:100%; padding: 16px; font-size:1.05rem; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.15); display:none; background: var(--info);">
             <i class="fa-solid fa-qrcode"></i> BUKA KAMERA SCANNER
         </button>
+
         <button class="btn-danger" onclick="stopScanAbsenMahasiswa()" id="btn-stop-scan-mhs" style="width:100%; padding: 12px; border-radius: 12px; display:none; margin-top:10px;">Tutup Kamera</button>
         
         <div id="qr-reader-mahasiswa" style="width:100%; display:none; margin-top:14px; border-radius:12px; overflow:hidden; border:3px solid var(--info);"></div>
