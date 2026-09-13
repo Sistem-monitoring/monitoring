@@ -5857,17 +5857,19 @@ async function sinkronisasiKeCloud() {
             let santriPayload = santriGabungan;
             let usersPayload = usersGabungan;
 
-            // Jika Firebase, hapus foto HANYA dari payload agar teks ringan
+                        // Jika Firebase, hapus foto HANYA dari payload agar teks ringan
             if (activeCloudProvider === 'firebase') {
                 santriPayload = santriGabungan.map(s => { let temp = { ...s }; delete temp.foto; return temp; });
                 usersPayload = usersGabungan.map(u => { let temp = { ...u }; delete temp.foto; return temp; });
             }
 
             let yayasanBersih = getDB('pondok_yayasan', {});
-            delete yayasanBersih.bg_login; delete yayasanBersih.bg_idcard; delete yayasanBersih.wallpaper_slides; 
+            // KODE PERBAIKAN: Perintah 'delete' dihapus agar wallpaper login & id card ikut terkirim ke cloud
+            // Gambar diizinkan masuk ke dalam variabel yayasanBersih 
 
             const payloadMerged = {
                 santri: santriPayload, users: usersPayload, yayasan: yayasanBersih,
+
                 mapel: gabungDataArray(getDB('pondok_master_mapel', []), dataCloud.mapel, 'id').filter(x => !t_mapel.includes(x.id)),
                 kelas: gabungDataArray(getDB('pondok_kelas', []), dataCloud.kelas, 'id').filter(x => !t_kelas.includes(x.id)),
                 tagihan: gabungDataArray(getDB('pondok_tagihan_denda', []), dataCloud.tagihan, 'id_tagihan').filter(x => !t_tagihan.includes(x.id_tagihan)),
