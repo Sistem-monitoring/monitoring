@@ -780,6 +780,23 @@
                     <div id="wadah-form-evaluasi" style="margin-top: 15px;"></div>
                 </div>
             </div>
+                <div class="card card-premium" style="border-left-color: #8E44AD; margin-top:15px;">
+                    <h3 style="margin-bottom: 14px; color: #8E44AD;"><i class="fa-solid fa-qrcode"></i> Generate Soal Evaluasi (QR)</h3>
+                    <p style="font-size:0.75rem; color:var(--text-muted);">Masukkan link form soal untuk di-scan oleh mahasiswa.</p>
+                    
+                    <label>Judul Evaluasi / Mata Kuliah</label>
+                    <input type="text" id="evaluasi-judul-soal" placeholder="Contoh: KMB Keperawatan Dasar">
+                    
+                    <label>Link Eksternal (Google Form / CBT)</label>
+                    <input type="url" id="evaluasi-link-soal" placeholder="https://forms.gle/...">
+                    
+                    <button class="btn-primary" style="background:#8E44AD; border:none; margin-top:10px;" onclick="generateQRSoalEvaluasi()">GENERATE BARCODE SOAL</button>
+                    
+                    <div id="wadah-qr-evaluasi" style="margin-top:15px; text-align:center; display:none;">
+                        <div id="qr-evaluasi-canvas" style="display:flex; justify-content:center; padding:15px; background:#fff; border-radius:10px; border:2px dashed #ccc;"></div>
+                        <p style="font-size:0.8rem; margin-top:10px; color:var(--text-muted);">Proyeksikan barcode ini agar bisa di-scan mahasiswa.</p>
+                    </div>
+                </div>
 
                         <!-- VIEW IZIN -->
             <div id="view-izin" class="hidden page-view">
@@ -1338,22 +1355,38 @@
             <i class="fa-solid fa-spinner fa-spin"></i> Mengecek Lokasi Kampus...
         </div>
 
-        <!-- 👇 TAMBAHAN: OPSI STATUS KEHADIRAN MAHASISWA 👇 -->
-        <label style="color: var(--primary); font-size: 0.85rem; font-weight: bold; margin-bottom: 8px; display: block;">
-            <i class="fa-solid fa-user-check"></i> Pilih Status Kehadiran:
-        </label>
-        <div style="display: flex; gap: 8px; margin-bottom: 15px;">
-            <label style="flex: 1; text-align: center; background: rgba(52, 199, 89, 0.15); padding: 10px 5px; border-radius: 10px; cursor: pointer; border: 1px solid var(--success); font-weight: bold; font-size: 0.8rem;">
-                <input type="radio" name="mhs_status_absen" value="Hadir" checked style="accent-color: var(--success); transform: scale(1.2);"> Hadir
+                <!-- 👇 PERBAIKAN: OPSI STATUS KEHADIRAN MAHASISWA 👇 -->
+        <style>
+            /* Sembunyikan radio button asli agar tidak ada garis buram */
+            .radio-absen-mhs input[type="radio"] { display: none; }
+            /* Efek warna saat dipilih */
+            .radio-absen-mhs input[type="radio"]:checked + label[for="mhs_izin"] { background: #F39C12 !important; color: #fff !important; }
+            .radio-absen-mhs input[type="radio"]:checked + label[for="mhs_sakit"] { background: var(--danger) !important; color: #fff !important; }
+        </style>
+        
+        <div style="background: rgba(4, 67, 42, 0.05); padding: 12px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,0,0,0.1);">
+            <label style="color: var(--primary); font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; display: block;">
+                <i class="fa-solid fa-user-check"></i> Keterangan Ketidakhadiran:
             </label>
-            <label style="flex: 1; text-align: center; background: rgba(243, 156, 18, 0.15); padding: 10px 5px; border-radius: 10px; cursor: pointer; border: 1px solid #F39C12; font-weight: bold; font-size: 0.8rem;">
-                <input type="radio" name="mhs_status_absen" value="Izin" style="accent-color: #F39C12; transform: scale(1.2);"> Izin
-            </label>
-            <label style="flex: 1; text-align: center; background: rgba(231, 76, 60, 0.15); padding: 10px 5px; border-radius: 10px; cursor: pointer; border: 1px solid var(--danger); font-weight: bold; font-size: 0.8rem;">
-                <input type="radio" name="mhs_status_absen" value="Sakit" style="accent-color: var(--danger); transform: scale(1.2);"> Sakit
-            </label>
+            <p style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 10px; line-height: 1.3;">Biarkan kosong jika tidak hadir (Alpa). Pilih di bawah ini jika berhalangan. Untuk status <strong>Hadir</strong>, langsung lakukan Scan Barcode Dosen.</p>
+            
+            <div class="radio-absen-mhs" style="display: flex; gap: 8px;">
+                <!-- Default tersembunyi (Alpa) -->
+                <input type="radio" name="mhs_status_absen" id="mhs_alpa" value="Alpa" checked>
+                
+                <input type="radio" name="mhs_status_absen" id="mhs_izin" value="Izin">
+                <label for="mhs_izin" style="flex: 1; text-align: center; padding: 10px; border-radius: 10px; cursor: pointer; border: 1px solid #F39C12; font-weight: bold; font-size: 0.8rem; background: #fff; color: #F39C12; transition: 0.2s; margin:0;">
+                    Izin
+                </label>
+
+                <input type="radio" name="mhs_status_absen" id="mhs_sakit" value="Sakit">
+                <label for="mhs_sakit" style="flex: 1; text-align: center; padding: 10px; border-radius: 10px; cursor: pointer; border: 1px solid var(--danger); font-weight: bold; font-size: 0.8rem; background: #fff; color: var(--danger); transition: 0.2s; margin:0;">
+                    Sakit
+                </label>
+            </div>
         </div>
-        <!-- 👆 SELESAI TAMBAHAN 👆 -->
+        <!-- 👆 SELESAI PERBAIKAN 👆 -->
+
 
         <button class="btn-primary" onclick="mulaiScanAbsenMahasiswa()" id="btn-scan-mhs" style="width:100%; padding: 16px; font-size:1.05rem; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.15); display:none; background: var(--info);">
             <i class="fa-solid fa-qrcode"></i> BUKA KAMERA SCANNER
@@ -1364,6 +1397,25 @@
         <div id="qr-reader-mahasiswa" style="width:100%; display:none; margin-top:14px; border-radius:12px; overflow:hidden; border:3px solid var(--info);"></div>
         
         <div id="hasil-absen-mhs" style="margin-top:15px; text-align:center; font-weight:bold; font-size:1.1rem;"></div>
+    </div>
+</div>
+<!-- VIEW EVALUASI MAHASISWA -->
+<div id="view-evaluasi-mahasiswa" class="hidden page-view">
+    <div class="card card-premium" style="border-left-color: #8E44AD;">
+        <h3 style="margin-bottom: 14px; color: #8E44AD;"><i class="fa-solid fa-qrcode"></i> Scan Soal Evaluasi</h3>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:15px;">Arahkan kamera ke Barcode Ujian/Evaluasi dari Dosen untuk mulai menjawab soal.</p>
+        
+        <button class="btn-primary" onclick="mulaiScanSoalMahasiswa()" id="btn-scan-soal" style="width:100%; padding: 16px; font-size:1.05rem; border-radius: 12px; background: #8E44AD; border:none; box-shadow: 0 10px 20px rgba(142, 68, 173, 0.2);">
+            <i class="fa-solid fa-camera"></i> SCAN BARCODE SOAL
+        </button>
+        <button class="btn-danger hidden" onclick="stopScanSoalMahasiswa()" id="btn-stop-scan-soal" style="width:100%; padding: 12px; border-radius: 12px; margin-top:10px;">Tutup Kamera</button>
+        
+        <div id="qr-reader-soal" style="width:100%; display:none; margin-top:14px; border-radius:12px; overflow:hidden; border:3px solid #8E44AD;"></div>
+        
+        <div id="hasil-scan-soal" class="hidden" style="margin-top:15px; padding:15px; background:rgba(142, 68, 173, 0.1); border:1px solid #8E44AD; border-radius:10px; text-align:center;">
+            <h4 id="judul-soal-tampil" style="color:#8E44AD; margin-bottom:10px;">Judul Soal</h4>
+            <a href="#" id="link-soal-tampil" target="_blank" class="btn-primary" style="display:inline-block; text-decoration:none; background:#8E44AD; padding:12px; border-radius:8px; border:none; width:100%;">BUKA FORM SOAL & JAWAB SEKARANG</a>
+        </div>
     </div>
 </div>
 
@@ -3162,6 +3214,70 @@ function gantiInstansi() {
         });
     }
 }
+    // --- JS UNTUK MENU BARU MAHASISWA & GENERATE QR SOAL ---
+    
+    // Tambahkan view ini ke dalam akses Mahasiswa di konstanta menuMaster
+    // Pastikan { id: 'view-evaluasi-mahasiswa', nama: 'Scan Evaluasi', icon: 'fa-list-check' } ditambahkan di deklarasi menuMaster (Baris 821).
+
+    function generateQRSoalEvaluasi() {
+        const judul = document.getElementById('evaluasi-judul-soal').value.trim();
+        const link = document.getElementById('evaluasi-link-soal').value.trim();
+        if (!judul || !link) return alert("Judul dan Link Soal wajib diisi!");
+        
+        const wadahQR = document.getElementById('qr-evaluasi-canvas');
+        wadahQR.innerHTML = '';
+        
+        const payload = JSON.stringify({ tipe: 'SOAL_EVALUASI', j: judul, l: link });
+        
+        if (typeof QRCode !== 'undefined') {
+            new QRCode(wadahQR, { text: payload, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.L });
+            document.getElementById('wadah-qr-evaluasi').style.display = 'block';
+        } else {
+            alert("Library QRCode belum termuat.");
+        }
+    }
+
+    let scannerSoal = null;
+    function mulaiScanSoalMahasiswa() {
+        if (typeof Html5Qrcode === 'undefined') return alert("Library Scanner belum siap.");
+        document.getElementById('qr-reader-soal').style.display = 'block';
+        document.getElementById('btn-scan-soal').classList.add('hidden');
+        document.getElementById('btn-stop-scan-soal').classList.remove('hidden');
+        document.getElementById('hasil-scan-soal').classList.add('hidden');
+        
+        if (!scannerSoal) {
+            scannerSoal = new Html5Qrcode("qr-reader-soal");
+            scannerSoal.start({ facingMode: "environment" }, { fps: 15, qrbox: { width: 250, height: 250 } }, (rawScan) => {
+                try {
+                    let parsed = JSON.parse(rawScan);
+                    if (parsed.tipe === 'SOAL_EVALUASI' && parsed.l) {
+                        document.getElementById('judul-soal-tampil').innerText = parsed.j || "Evaluasi Ujian";
+                        document.getElementById('link-soal-tampil').href = parsed.l;
+                        document.getElementById('hasil-scan-soal').classList.remove('hidden');
+                        stopScanSoalMahasiswa();
+                    } else {
+                        alert("Barcode tidak valid untuk menu ini.");
+                    }
+                } catch(e) {
+                    alert("Format Barcode tidak dikenali.");
+                }
+            }).catch(() => {
+                alert("Gagal mengakses kamera.");
+                stopScanSoalMahasiswa();
+            });
+        }
+    }
+
+    function stopScanSoalMahasiswa() {
+        if (scannerSoal) {
+            scannerSoal.stop().then(() => {
+                document.getElementById('qr-reader-soal').style.display = 'none';
+                document.getElementById('btn-scan-soal').classList.remove('hidden');
+                document.getElementById('btn-stop-scan-soal').classList.add('hidden');
+                scannerSoal = null;
+            });
+        }
+    }
 
     /* KODE SESUDAHNYA */
    async function initApp() {
@@ -5430,6 +5546,34 @@ font_sertifikat: document.getElementById('setting-font-sertifikat').value,
         });
     }
 
+        function sisipkanTombolLokasiOtomatis(latVal, lngVal) {
+        return `
+        <button type="button" class="btn-outline" style="width:100%; margin-bottom:10px; font-size:0.75rem; justify-content:center; border-color:var(--info); color:var(--info);" onclick="ambilLokasiPetaOtomatis(this)">
+            <i class="fa-solid fa-location-crosshairs"></i> Deteksi Lokasi Saya Saat Ini (Maps)
+        </button>
+        <div style="display:flex; gap:8px;">
+            <div style="flex:1;"><label>Latitude</label><input type="number" step="any" class="gps-lat" value="${latVal || ''}"></div>
+            <div style="flex:1;"><label>Longitude</label><input type="number" step="any" class="gps-lng" value="${lngVal || ''}"></div>
+            <div style="flex:1;"><label>Radius (m)</label><input type="number" class="gps-rad" value="100"></div>
+        </div>`;
+    }
+
+    function ambilLokasiPetaOtomatis(tombolEl) {
+        const baris = tombolEl.closest('.baris-titik-gps');
+        tombolEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mendeteksi Lokasi...';
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((pos) => {
+                baris.querySelector('.gps-lat').value = pos.coords.latitude;
+                baris.querySelector('.gps-lng').value = pos.coords.longitude;
+                tombolEl.innerHTML = '<i class="fa-solid fa-check"></i> Titik Maps Berhasil Diambil';
+                tombolEl.style.background = 'rgba(52, 199, 89, 0.1)';
+            }, (err) => {
+                alert("Gagal mengakses lokasi Maps. Pastikan izin GPS menyala.");
+                tombolEl.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> Coba Deteksi Lagi';
+            }, { enableHighAccuracy: true });
+        }
+    }
+
     function tambahBarisTitikGPS() {
         const wadah = document.getElementById('list-titik-gps');
         const count = wadah.querySelectorAll('.baris-titik-gps').length + 1;
@@ -5440,15 +5584,12 @@ font_sertifikat: document.getElementById('setting-font-sertifikat').value,
                     <button type="button" class="btn-danger" style="margin:0; padding:4px 8px; font-size:0.7rem;" onclick="this.closest('.baris-titik-gps').remove()">Hapus</button>
                 </div>
                 <label style="margin-top:0;">Nama/Label Lokasi</label>
-                <input type="text" class="gps-label" value="" placeholder="Cth: Asrama / Gedung B">
-                <div style="display:flex; gap:8px;">
-                    <div style="flex:1;"><label>Latitude</label><input type="number" step="any" class="gps-lat" value=""></div>
-                    <div style="flex:1;"><label>Longitude</label><input type="number" step="any" class="gps-lng" value=""></div>
-                    <div style="flex:1;"><label>Radius (m)</label><input type="number" class="gps-rad" value="100"></div>
-                </div>
+                <input type="text" class="gps-label" value="" placeholder="Cth: Area Rumah Sakit / Kampus">
+                ${sisipkanTombolLokasiOtomatis('', '')}
             </div>
         `;
     }
+
 
     function simpanGPS() {
         const aktif = document.getElementById('setting-gps-aktif').value === "1";
