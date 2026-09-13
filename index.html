@@ -3084,7 +3084,6 @@ function validasiPilihInstansi() {
     if (kodeInput === "") return alert("Kode instansi tidak boleh kosong!");
     if (typeof APP_INSTITUTIONS === 'undefined') return alert("File config.js tidak terbaca.");
     
-    // Proses pencarian (Blind-Search)
     const instansiPilihan = APP_INSTITUTIONS.find(inst => inst.password_akses === kodeInput);
     
     if (!instansiPilihan) {
@@ -3093,8 +3092,25 @@ function validasiPilihInstansi() {
     
     // Simpan database instansi ke HP pengguna jika kode cocok
     setDB('pondok_instansi_aktif', instansiPilihan).then(() => {
-        alert(`Akses Diterima.\nTerhubung ke: ${instansiPilihan.nama}...`);
-        location.reload(); 
+        alert(`Akses Diterima.\nTerhubung ke: ${instansiPilihan.nama}... Menyiapkan sinkronisasi cloud...`);
+        
+        // 1. Set Provider Aktif ke variabel Global agar siap digunakan
+        activeCloudProvider = instansiPilihan.database_provider || 'supabase';
+        setDB('pondok_active_cloud_provider', activeCloudProvider);
+
+        if (activeCloudProvider === 'firebase') {
+            firebaseConfig = instansiPilihan.firebase || { url: '', key: '' };
+            setDB('pondok_firebase_config', firebaseConfig);
+        } else {
+            supabaseConfig = instansiPilihan.supabase || { url: '', key: '' };
+            setDB('pondok_supabase_config', supabaseConfig);
+        }
+        
+        // 2. Sembunyikan layar portal secara visual
+        document.getElementById('view-pilih-instansi').classList.add('hidden');
+        
+        // 3. Panggil fungsi tarik data alih-alih mereload halaman
+        tarikDataDariSupabase(); 
     });
 }
 
@@ -3295,76 +3311,6 @@ initSupabaseRealtimeListener();
     });
 
    
-    // ═══ PWA: IKON & MANIFEST DINAMIS DARI LOGO INSTANSI ═══
-    function ambilLogoPWA() {
-        try {
-            const y = getDB('pondok_yayasan', {});
-            if (y && y.logo && y.logo.trim() !== '') return y.logo;
-        } catch(e) {}
-        return 'icon-512.png';
-    }
-
-    function perbaruiIkonPWA(data) {
-        try {
-            const logoSumber = (data && data.logo && data.logo.trim() !== '') ? data.logo : 'icon-512.png';
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = function() {
-                try {
-                    const bikinIkon = (ukuran, denganLatar) => {
-                        const c = document.createElement('canvas');
-                        c.width = ukuran; c.height = ukuran;
-                        const ctx = c.getContext('2d');
-                        if (denganLatar) { ctx.fillStyle = '#04432A'; ctx.fillRect(0, 0, ukuran, ukuran); }
-                        const pad = denganLatar ? ukuran * 0.16 : ukuran * 0.04;
-                        const sisi = ukuran - pad * 2;
-                        const rasio = Math.min(sisi / img.width, sisi / img.height);
-                        const w = img.width * rasio, h = img.height * rasio;
-                        ctx.drawImage(img, (ukuran - w) / 2, (ukuran - h) / 2, w, h);
-                        return c.toDataURL('image/png');
-                    };
-                    const i16 = bikinIkon(16, false), i32 = bikinIkon(32, false), i180 = bikinIkon(180, false);
-                    const i192 = bikinIkon(192, false), i512 = bikinIkon(512, false);
-                    const i192m = bikinIkon(192, true), i512m = bikinIkon(512, true);
-
-                    // 1. Favicon tab browser diganti logo instansi
-                    document.querySelectorAll("link[rel~='icon']").forEach(l => l.remove());
-                    const tambahLink = (rel, href, sizes) => { const l = document.createElement('link'); l.rel = rel; if (sizes) l.sizes = sizes; l.type = 'image/png'; l.href = href; document.head.appendChild(l); };
-                    tambahLink('icon', i16, '16x16');
-                    tambahLink('icon', i32, '32x32');
-                    tambahLink('icon', i192, '192x192');
-
-                    // 2. Ikon "Add to Home Screen" iPhone/iPad
-                    const apple = document.getElementById('apple-touch-icon');
-                    if (apple) apple.href = i180; else tambahLink('apple-touch-icon', i180, null);
-
-                    // 3. Manifest dinamis: logo instansi jadi ikon aplikasi saat PWA di-install
-                    const namaApp = (data.pondok && data.pondok.trim() !== '') ? data.pondok : 'SMS';
-                    const manifes = {
-                        name: namaApp,
-                        short_name: namaApp.length > 12 ? namaApp.substring(0, 12) : namaApp,
-                        description: data.yayasan || 'Sistem Monitoring Universal',
-                        id: './', start_url: './', scope: './',
-                        display: 'standalone', orientation: 'portrait',
-                        background_color: '#04432A', theme_color: '#04432A',
-                        icons: [
-                            { src: i192, sizes: '192x192', type: 'image/png', purpose: 'any' },
-                            { src: i512, sizes: '512x512', type: 'image/png', purpose: 'any' },
-                            { src: i192m, sizes: '192x192', type: 'image/png', purpose: 'maskable' },
-                            { src: i512m, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
-                        ]
-                    };
-                    const blobUrl = URL.createObjectURL(new Blob([JSON.stringify(manifes)], { type: 'application/manifest+json' }));
-                    let linkManifest = document.querySelector("link[rel='manifest']");
-                    if (!linkManifest) { linkManifest = document.createElement('link'); linkManifest.rel = 'manifest'; document.head.appendChild(linkManifest); }
-                    linkManifest.href = blobUrl;
-                } catch(err) { console.warn('Ikon PWA dinamis gagal dibuat, memakai ikon bawaan:', err); }
-            };
-            img.onerror = function() { console.warn('Logo instansi tidak bisa dimuat untuk ikon PWA.'); };
-            img.src = logoSumber;
-        } catch(e) { console.warn('perbaruiIkonPWA:', e); }
-    }
-
 function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
@@ -3474,7 +3420,6 @@ aturTampilanTombolSync(); // <-- Panggil di sini saat menu database baru dibuka
             let validLogo = (data.logo && data.logo.trim() !== "") ? data.logo : "https://cdn-icons-png.flaticon.com/512/3592/3592078.png";
             if(document.getElementById('login-logo')) document.getElementById('login-logo').src = validLogo;
             if(document.getElementById('header-logo')) document.getElementById('header-logo').src = validLogo;
-            perbaruiIkonPWA(data); // PWA: jadikan logo instansi sebagai favicon tab & ikon install di HP
             let validBg = (data.bg_login && data.bg_login.trim() !== "") ? data.bg_login : "https://images.unsplash.com/photo-1519817650390-28a59b20892c?q=80&w=1000&auto=format&fit=crop";
             if(document.getElementById('view-login')) document.getElementById('view-login').style.backgroundImage = `url('${validBg}')`;
             
@@ -4394,15 +4339,15 @@ const lebar1D = parseFloat(yayasan.lebar_barcode1d) || 2.2;
                     navigator.serviceWorker.ready.then(registration => {
                         registration.showNotification(judul, {
                             body: pesan,
-                            icon: ambilLogoPWA(),
-                            badge: ambilLogoPWA(),
+                            icon: 'https://cdn-icons-png.flaticon.com/512/3592/3592078.png',
+                            badge: 'https://cdn-icons-png.flaticon.com/512/3592/3592078.png',
                             vibrate: [200, 100, 200]
                         });
                     });
                 } else {
                     new Notification(judul, {
                         body: pesan,
-                        icon: ambilLogoPWA()
+                        icon: 'https://cdn-icons-png.flaticon.com/512/3592/3592078.png'
                     });
                 }
             } catch(e) {
