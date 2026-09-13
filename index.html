@@ -781,16 +781,23 @@
                 </div>
             </div>
 
-            <!-- VIEW IZIN -->
+                        <!-- VIEW IZIN -->
             <div id="view-izin" class="hidden page-view">
                 <div class="back-nav" onclick="closeSubMenu()"><i class="fa-solid fa-arrow-left"></i> Kembali ke Dashboard</div>
                 <div class="card card-premium">
                     <h3 style="margin-bottom: 8px; color: var(--primary);"><i class="fa-solid fa-file-signature"></i> Surat Izin</h3>
                     
-                    <div style="display: flex; gap: 8px; margin-bottom: 14px;">
-                        <button class="btn-primary" onclick="startScannerIzin('keluar')" style="flex:1; font-size:0.78rem;"><i class="fa-solid fa-share-from-square"></i> Surat Izin</button>
-                        <button class="btn-primary" onclick="startScannerIzin('balik')" style="flex:1; background:var(--success); font-size:0.78rem;"><i class="fa-solid fa-right-to-bracket"></i> Validasi Kembali</button>
+                    <!-- 👇 DITAMBAHKAN flex-wrap: wrap; AGAR RAPI DI LAYAR HP 👇 -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;">
+                        <button class="btn-primary" onclick="startScannerIzin('keluar')" style="flex:1; min-width: 100px; font-size:0.78rem;"><i class="fa-solid fa-share-from-square"></i> Izin Keluar</button>
+                        
+                        <!-- 👇 TAMBAHAN TOMBOL IZIN SAKIT 👇 -->
+                        <button class="btn-warning" onclick="startScannerIzin('sakit')" style="flex:1; min-width: 100px; font-size:0.78rem;"><i class="fa-solid fa-notes-medical"></i> Izin Sakit</button>
+                        
+                        <button class="btn-primary" onclick="startScannerIzin('balik')" style="flex:1; min-width: 100px; background:var(--success); font-size:0.78rem;"><i class="fa-solid fa-right-to-bracket"></i> Balik</button>
                     </div>
+
+                   
                     <button class="btn-outline" onclick="stopScannerIzin()" id="btn-stop-camera-izin" style="justify-content:center; display:none; margin-bottom:14px; border-color:var(--danger); color:var(--danger);"><i class="fa-solid fa-stop"></i> Tutup Kamera</button>
                     <div id="qr-reader-izin" style="width:100%; display:none; margin-bottom:14px;"></div>
                     <div id="area-cetak-surat-izin" class="hidden">
@@ -1885,10 +1892,18 @@
             <input type="text" id="reg-mhs-nama" placeholder="Nama Lengkap sesuai KTP...">
             <label style="margin-top:5px;">Nomor WhatsApp (Aktif)</label>
             <input type="number" id="reg-mhs-wa" placeholder="Contoh: 08123456789">
-            <label style="margin-top:5px;">Buat Password Login</label>
+                        <label style="margin-top:5px;">Buat Password Login</label>
             <input type="password" id="reg-mhs-password" placeholder="Minimal 6 karakter...">
             
+            <!-- 👇 TAMBAHAN PILIHAN KELAS 👇 -->
+            <label style="margin-top:5px; color: var(--info);"><i class="fa-solid fa-layer-group"></i> Pilih Kelas Anda</label>
+            <select id="reg-mhs-kelas" style="width: 100%; padding: 13px 15px; border-radius: 12px; border: 1px solid #ccc; margin-bottom: 10px; background: #f9f9f9; font-size: 0.9rem;">
+                <option value="">-- Memuat daftar kelas... --</option>
+            </select>
+            <!-- 👆 SELESAI TAMBAHAN KELAS 👆 -->
+
             <button class="btn-success" onclick="kirimPendaftaranMahasiswa()" id="btn-kirim-daftar" style="width: 100%; padding: 14px; border-radius: 12px; margin-top: 15px; font-weight:bold;">KIRIM PENDAFTARAN</button>
+
             <button class="btn-outline" onclick="tutupModalDaftarMahasiswa()" style="width: 100%; justify-content: center; border-radius: 12px; margin-top:10px;">Batal</button>
         </div>
     </div>
@@ -3256,13 +3271,25 @@ function lewatiScanKampus() {
         config = getDB('pondok_supabase_config', null);
     }
 
-    // Validasi: Cek apakah kredensial database sudah tersimpan di browser
+       // Validasi: Cek apakah kredensial database sudah tersimpan di browser
     if (config && config.url && config.url.length > 5) {
         // Sembunyikan langkah scan
         document.getElementById('step-1-scan-kampus').classList.add('hidden');
+        
+        // 👇 TAMBAHAN: Muat daftar kelas sebelum form ditampilkan 👇
+        const selectKelas = document.getElementById('reg-mhs-kelas');
+        if(selectKelas) {
+            selectKelas.innerHTML = '<option value="">-- Pilih Kelas Anda --</option>';
+            const dbKelas = getDB('pondok_kelas', []);
+            dbKelas.forEach(k => {
+                selectKelas.innerHTML += `<option value="${k.id}">${k.nama}</option>`;
+            });
+        }
+        
         // Langsung tampilkan form pendaftaran
         document.getElementById('step-2-form-daftar').classList.remove('hidden');
     } else {
+
         // Jika belum ada database (misal belum login portal), cegah tombol lewati
         alert("Gagal: Anda belum terhubung ke database instansi mana pun. Silakan scan QR atau login portal terlebih dahulu!");
     }
