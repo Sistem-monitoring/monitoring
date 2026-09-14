@@ -1381,16 +1381,16 @@
             </label>
             <p style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 10px; line-height: 1.3;">Biarkan kosong jika tidak hadir (Alpa). Pilih di bawah ini jika berhalangan. Untuk status <strong>Hadir</strong>, langsung lakukan Scan Barcode Dosen.</p>
             
-            <div class="radio-absen-mhs" style="display: flex; gap: 8px;">
-                <!-- Default tersembunyi (Alpa) -->
-                <input type="radio" name="mhs_status_absen" id="mhs_alpa" value="Alpa" checked>
+                        <div class="radio-absen-mhs" style="display: flex; gap: 8px;">
+                <!-- Tambahan event onchange untuk memicu form dokumen -->
+                <input type="radio" name="mhs_status_absen" id="mhs_alpa" value="Alpa" checked onchange="toggleFormDokumenAbsen(this.value)">
                 
-                <input type="radio" name="mhs_status_absen" id="mhs_izin" value="Izin">
+                <input type="radio" name="mhs_status_absen" id="mhs_izin" value="Izin" onchange="toggleFormDokumenAbsen(this.value)">
                 <label for="mhs_izin" style="flex: 1; text-align: center; padding: 10px; border-radius: 10px; cursor: pointer; border: 1px solid #F39C12; font-weight: bold; font-size: 0.8rem; background: #fff; color: #F39C12; transition: 0.2s; margin:0;">
                     Izin
                 </label>
 
-                <input type="radio" name="mhs_status_absen" id="mhs_sakit" value="Sakit">
+                <input type="radio" name="mhs_status_absen" id="mhs_sakit" value="Sakit" onchange="toggleFormDokumenAbsen(this.value)">
                 <label for="mhs_sakit" style="flex: 1; text-align: center; padding: 10px; border-radius: 10px; cursor: pointer; border: 1px solid var(--danger); font-weight: bold; font-size: 0.8rem; background: #fff; color: var(--danger); transition: 0.2s; margin:0;">
                     Sakit
                 </label>
@@ -1398,10 +1398,26 @@
         </div>
         <!-- 👆 SELESAI PERBAIKAN 👆 -->
 
+        <!-- 👇 AREA FORM DOKUMEN IZIN / SAKIT MAHASISWA 👇 -->
+        <div id="form-dokumen-absen" class="hidden" style="margin-bottom: 15px; padding: 15px; background: rgba(0,0,0,0.03); border-radius: 12px; border: 1px dashed #ccc;">
+            <label id="label-alasan-absen" style="color: var(--primary); font-size: 0.85rem; font-weight: bold;">Alasan Izin:</label>
+            <textarea id="input-alasan-absen" rows="2" placeholder="Tuliskan keterangan detail di sini..." style="width: 100%; border-radius: 8px; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; font-size: 0.85rem;"></textarea>
+            
+            <label id="label-foto-absen" style="color: var(--primary); font-size: 0.85rem; font-weight: bold;">Upload Foto Bukti:</label>
+            <input type="file" id="input-foto-absen" accept="image/*" style="width: 100%; background: #fff; border-radius: 8px; border: 1px solid #ccc; padding: 8px; margin-bottom: 10px;" onchange="previewFotoAbsenMhs(event)">
+            
+            <img id="preview-foto-absen" src="" style="max-width: 100%; max-height: 150px; display: none; border-radius: 8px; margin-bottom: 10px; border: 2px solid var(--info);">
+            
+            <button class="btn-primary" onclick="simpanPengajuanAbsenMhs()" id="btn-kirim-dokumen-absen" style="width:100%; padding: 14px; border-radius: 12px; font-weight: bold; background: #27ae60; border: none; box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);">
+                <i class="fa-solid fa-paper-plane"></i> KIRIM DOKUMEN & SIMPAN
+            </button>
+        </div>
+        <!-- 👆 AREA FORM DOKUMEN 👆 -->
 
         <button class="btn-primary" onclick="mulaiScanAbsenMahasiswa()" id="btn-scan-mhs" style="width:100%; padding: 16px; font-size:1.05rem; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.15); display:none; background: var(--info);">
-            <i class="fa-solid fa-qrcode"></i> BUKA KAMERA SCANNER
+            <i class="fa-solid fa-qrcode"></i> BUKA KAMERA SCANNER (HADIR)
         </button>
+
 
         <button class="btn-danger" onclick="stopScanAbsenMahasiswa()" id="btn-stop-scan-mhs" style="width:100%; padding: 12px; border-radius: 12px; display:none; margin-top:10px;">Tutup Kamera</button>
         
@@ -3334,6 +3350,107 @@ function gantiInstansi() {
             });
         }
     }
+// =========================================================================
+// 👇 FUNGSI BARU UNTUK VALIDASI & DOKUMEN IZIN/SAKIT MAHASISWA 👇
+// =========================================================================
+let tempFotoAbsenMhsBase64 = "";
+
+function toggleFormDokumenAbsen(status) {
+    const formDokumen = document.getElementById('form-dokumen-absen');
+    const btnScan = document.getElementById('btn-scan-mhs');
+    const labelAlasan = document.getElementById('label-alasan-absen');
+    const labelFoto = document.getElementById('label-foto-absen');
+    const inputAlasan = document.getElementById('input-alasan-absen');
+
+    if (status === 'Izin' || status === 'Sakit') {
+        formDokumen.classList.remove('hidden');
+        if (btnScan) btnScan.style.display = 'none'; // Sembunyikan kamera jika sedang mengajukan izin
+
+        if (status === 'Sakit') {
+            labelAlasan.innerHTML = '<i class="fa-solid fa-stethoscope"></i> Diagnosis Penyakit:';
+            inputAlasan.placeholder = "Cth: Demam, tipes (Sesuai surat diagnosis dokter)...";
+            labelFoto.innerHTML = '<i class="fa-solid fa-file-medical"></i> Foto Surat Sakit (Minimal Puskesmas):';
+        } else {
+            labelAlasan.innerHTML = '<i class="fa-solid fa-pen"></i> Alasan Izin:';
+            inputAlasan.placeholder = "Cth: Ada acara keluarga penting / berkabung...";
+            labelFoto.innerHTML = '<i class="fa-solid fa-image"></i> Foto Bukti Real:';
+        }
+    } else {
+        formDokumen.classList.add('hidden');
+        // Jika kembali ke opsi (Alpa/Hadir), munculkan lagi tombol kameranya asalkan GPS-nya hijau/valid
+        const kotakStatusMhs = document.getElementById('gps-status-mahasiswa');
+        if (btnScan && kotakStatusMhs && kotakStatusMhs.style.color === 'rgb(39, 174, 96)') { 
+            btnScan.style.display = 'block';
+        }
+    }
+}
+
+function previewFotoAbsenMhs(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Kompresi otomatis memanfaatkan fungsi kompresiGambar existing
+    kompresiGambar(file, 400, (base64Hasil) => {
+        tempFotoAbsenMhsBase64 = base64Hasil;
+        const imgPreview = document.getElementById('preview-foto-absen');
+        imgPreview.src = base64Hasil;
+        imgPreview.style.display = 'block';
+    });
+}
+
+function simpanPengajuanAbsenMhs() {
+    const status = document.querySelector('input[name="mhs_status_absen"]:checked').value;
+    const alasan = document.getElementById('input-alasan-absen').value.trim();
+    
+    if (status !== 'Izin' && status !== 'Sakit') return;
+    
+    if (!alasan) {
+        return alert(status === 'Sakit' ? "Diagnosis penyakit wajib diisi!" : "Alasan izin wajib diisi!");
+    }
+    if (!tempFotoAbsenMhsBase64) {
+        return alert(status === 'Sakit' ? "Foto Surat Keterangan Sakit wajib diunggah untuk validasi!" : "Foto bukti izin wajib diunggah!");
+    }
+
+    // Simpan ke database lokal khusus pengajuan mandiri
+    let dbPengajuan = getDB('pondok_pengajuan_absen', []);
+    dbPengajuan.push({
+        id: Date.now(),
+        nis: currentUser.username, // Karena username mahasiswa = NIS
+        nama: currentUser.nama,
+        status: status,
+        alasan: alasan,
+        foto_bukti: tempFotoAbsenMhsBase64,
+        tanggal: new Date().toISOString(),
+        terverifikasi: false // Flag untuk nanti divalidasi oleh Admin/Dosen
+    });
+    setDB('pondok_pengajuan_absen', dbPengajuan);
+
+    // Memicu notifikasi lokal agar user tahu datanya masuk
+    if (typeof tambahNotifInternal === 'function') {
+        tambahNotifInternal(
+            'pengajuan_' + Date.now(), 
+            'Pengajuan ' + status + ' Terkirim', 
+            'Menunggu validasi dokumen oleh Bagian Tata Usaha / Dosen.', 
+            'fa-file-signature', 
+            'info', 
+            ''
+        );
+    }
+
+    alert(`Berhasil! Pengajuan ${status} beserta bukti dokumen telah disimpan dan menunggu persetujuan (Validasi).`);
+    
+    // Reset Form UI ke keadaan bersih
+    document.getElementById('input-alasan-absen').value = '';
+    document.getElementById('input-foto-absen').value = '';
+    document.getElementById('preview-foto-absen').src = '';
+    document.getElementById('preview-foto-absen').style.display = 'none';
+    tempFotoAbsenMhsBase64 = "";
+    
+    // Kembalikan status ke Alpa/Default
+    document.getElementById('mhs_alpa').checked = true;
+    toggleFormDokumenAbsen('Alpa');
+}
+// =========================================================================
 
     /* KODE SESUDAHNYA */
    async function initApp() {
