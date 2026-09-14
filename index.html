@@ -777,11 +777,30 @@
                     <label>Pilih Kelas / Kelompok</label>
                     <select id="pilih-kelas-evaluasi" onchange="renderFormEvaluasi()"></select>
                     
-                    <div id="wadah-form-evaluasi" style="margin-top: 15px;"></div>
-                </div>
+                                <div id="wadah-form-evaluasi" style="margin-top: 15px;"></div>
+        </div> <!-- Ini penutup card Evaluasi Nilai -->
+
+        <!-- KARTU GENERATE SOAL SEKARANG BERADA DI DALAM view-evaluasi -->
+        <div class="card card-premium" style="border-left-color: #8E44AD; margin-top:15px;">
+            <h3 style="margin-bottom: 14px; color: #8E44AD;"><i class="fa-solid fa-qrcode"></i> Generate Soal Evaluasi (QR)</h3>
+            <p style="font-size:0.75rem; color:var(--text-muted);">Masukkan link form soal untuk di-scan oleh mahasiswa.</p>
+            
+            <label>Judul Evaluasi / Mata Kuliah</label>
+            <input type="text" id="evaluasi-judul-soal" placeholder="Contoh: KMB Keperawatan Dasar">
+            
+            <label>Link Eksternal (Google Form / CBT)</label>
+            <input type="url" id="evaluasi-link-soal" placeholder="https://forms.gle/...">
+            
+            <button class="btn-primary" style="background:#8E44AD; border:none; margin-top:10px;" onclick="generateQRSoalEvaluasi()">GENERATE BARCODE SOAL</button>
+            
+            <div id="wadah-qr-evaluasi" style="margin-top:15px; text-align:center; display:none;">
+                <div id="qr-evaluasi-canvas" style="display:flex; justify-content:center; padding:15px; background:#fff; border-radius:10px; border:2px dashed #ccc;"></div>
+                <p style="font-size:0.8rem; margin-top:10px; color:var(--text-muted);">Proyeksikan barcode ini agar bisa di-scan mahasiswa.</p>
             </div>
-                <div class="card card-premium" style="border-left-color: #8E44AD; margin-top:15px;">
-                    <h3 style="margin-bottom: 14px; color: #8E44AD;"><i class="fa-solid fa-qrcode"></i> Generate Soal Evaluasi (QR)</h3>
+        </div>
+
+    </div> <!-- PINDAHKAN PENETUP view-evaluasi KE SINI -->
+
                     <p style="font-size:0.75rem; color:var(--text-muted);">Masukkan link form soal untuk di-scan oleh mahasiswa.</p>
                     
                     <label>Judul Evaluasi / Mata Kuliah</label>
@@ -1107,7 +1126,12 @@
                         <option value="mdt">Mode MDT (Madrasah Diniyah)</option>
                         <option value="pelatihan">Mode Lembaga Pelatihan</option>
                     </select>
+                    <!-- TAMBAHAN: Input Standar Absensi -->
+    <label style="color: var(--danger); margin-top: 10px;"><i class="fa-solid fa-percent"></i> Standar Minimal Kehadiran Mahasiswa (%)</label>
+    <input type="number" id="setting-standar-absen" placeholder="Contoh: 75">
+
                 </div>
+                
                 <div class="card card-premium">
                     <h3 style="margin-bottom: 14px; color: var(--primary);">Identitas Instansi</h3>
                     <label id="label-nama-pondok">Nama Instansi</label><input type="text" id="input-nama-pondok-edit">
@@ -1403,9 +1427,12 @@
 <div id="view-evaluasi-mahasiswa" class="hidden page-view">
     <div class="card card-premium" style="border-left-color: #8E44AD;">
         <h3 style="margin-bottom: 14px; color: #8E44AD;"><i class="fa-solid fa-qrcode"></i> Scan Soal Evaluasi</h3>
-        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:15px;">Arahkan kamera ke Barcode Ujian/Evaluasi dari Dosen untuk mulai menjawab soal.</p>
+                <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:15px;">Arahkan kamera ke Barcode Ujian/Evaluasi dari Dosen untuk mulai menjawab soal.</p>
         
+        <div id="pesan-kelayakan-evaluasi" style="display:none; padding: 15px; background: rgba(255, 59, 48, 0.1); border-left: 4px solid var(--danger); color: var(--danger); border-radius: 8px; margin-bottom: 15px; font-weight: bold; font-size: 0.85rem;"></div>
+
         <button class="btn-primary" onclick="mulaiScanSoalMahasiswa()" id="btn-scan-soal" style="width:100%; padding: 16px; font-size:1.05rem; border-radius: 12px; background: #8E44AD; border:none; box-shadow: 0 10px 20px rgba(142, 68, 173, 0.2);">
+
             <i class="fa-solid fa-camera"></i> SCAN BARCODE SOAL
         </button>
         <button class="btn-danger hidden" onclick="stopScanSoalMahasiswa()" id="btn-stop-scan-soal" style="width:100%; padding: 12px; border-radius: 12px; margin-top:10px;">Tutup Kamera</button>
@@ -3237,6 +3264,41 @@ function gantiInstansi() {
         }
     }
 
+       function cekKelayakanEvaluasiMahasiswa() {
+        const yayasan = getDB('pondok_yayasan', {});
+        const standarMinimum = parseFloat(yayasan.standar_absen) || 0; 
+        
+        const nisMhs = currentUser.username; 
+        
+        let totalSesi = 0;
+        let totalHadir = 0;
+        
+        const absensiDB = getDB('pondok_absensi', []);
+        absensiDB.forEach(sesi => {
+            const historiMhs = sesi.detail.find(d => d.nis === nisMhs);
+            if (historiMhs) {
+                totalSesi++;
+                if (historiMhs.status === 'Hadir') {
+                    totalHadir++;
+                }
+            }
+        });
+        
+        const persentaseKehadiran = totalSesi === 0 ? 100 : (totalHadir / totalSesi) * 100;
+        
+        const btnScan = document.getElementById('btn-scan-soal');
+        const pesanKelayakan = document.getElementById('pesan-kelayakan-evaluasi');
+        
+        if (persentaseKehadiran < standarMinimum) {
+            btnScan.style.display = 'none';
+            pesanKelayakan.style.display = 'block';
+            pesanKelayakan.innerHTML = `<i class="fa-solid fa-ban"></i> Maaf, Anda tidak memenuhi syarat mengikuti evaluasi.<br><br>Persentase Kehadiran: <strong>${persentaseKehadiran.toFixed(1)}%</strong><br>Standar Minimal: <strong>${standarMinimum}%</strong>`;
+        } else {
+            btnScan.style.display = 'block';
+            pesanKelayakan.style.display = 'none';
+        }
+    }
+
     let scannerSoal = null;
     function mulaiScanSoalMahasiswa() {
         if (typeof Html5Qrcode === 'undefined') return alert("Library Scanner belum siap.");
@@ -3564,8 +3626,10 @@ function registerServiceWorker() {
         if(lastTab === 'view-evaluasi') renderDropdownKelasEvaluasi();
         if(lastTab === 'view-izin') renderTabelIzinAktif();
                 if(lastTab === 'view-kelas') { renderMasterMapel(); renderTabelDaftarKelas(); renderJamKustom(); renderDropdownWaliKelas(); }    
-             if (lastTab === 'view-absen' || lastTab === 'view-absen-mahasiswa') startAnalisisGPSUstadz(); 
+                          if (lastTab === 'view-absen' || lastTab === 'view-absen-mahasiswa') startAnalisisGPSUstadz(); 
+        if (lastTab === 'view-evaluasi-mahasiswa') cekKelayakanEvaluasiMahasiswa();
         if (lastTab === 'view-scanner-wireless') { document.getElementById('input-dummy-wireless').focus(); document.getElementById('input-dummy-wireless').value = ''; }
+
 
         if (lastTab === 'view-keuangan') renderDataKeuanganPanel();
         if (lastTab === 'view-paguyuban') { document.getElementById('area-input-paguyuban').classList.add('hidden'); } 
@@ -3615,9 +3679,11 @@ aturTampilanTombolSync(); // <-- Panggil di sini saat menu database baru dibuka
             let tingkatBlur = data.blur_login !== undefined ? data.blur_login : "4";
             const overlay = document.querySelector('.login-overlay'); if(overlay) { overlay.style.backdropFilter = `blur(${tingkatBlur}px)`; overlay.style.webkitBackdropFilter = `blur(${tingkatBlur}px)`; }
 
-            if(document.getElementById('input-nama-pondok-edit')) {
+                        if(document.getElementById('input-nama-pondok-edit')) {
                 document.getElementById('setting-app-mode').value = data.mode || 'pondok'; 
+                if(document.getElementById('setting-standar-absen')) document.getElementById('setting-standar-absen').value = data.standar_absen || "0";
                 document.getElementById('input-nama-pondok-edit').value = data.pondok || ""; 
+
                 document.getElementById('input-yayasan-edit').value = data.yayasan || ""; 
                 document.getElementById('input-mudir-edit').value = data.mudir || ''; 
                 document.getElementById('input-alamat-edit').value = data.alamat || ''; 
@@ -5469,10 +5535,12 @@ function simpanTokenKeSupabase(tokenFCM) {
             mudir: mudir,
             alamat: alamat,
             blur_login: blur_login,
-            logo: base64TempImages.logo || old.logo,
-            bg_login: base64TempImages.bg_login ||old.bg_login,
-            // Tambahkan di dalam variabel newConfig = { ... }
+                   logo: base64TempImages.logo || old.logo,
+        bg_login: base64TempImages.bg_login ||old.bg_login,
+        // Tambahkan di dalam variabel newConfig = { ... }
 font_sertifikat: document.getElementById('setting-font-sertifikat').value,
+        standar_absen: document.getElementById('setting-standar-absen').value || "0",
+
 
            /* KODE SESUDAHNYA */
             bg_idcard: base64TempImages.bg_idcard || old.bg_idcard,
