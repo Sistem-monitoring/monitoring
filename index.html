@@ -799,23 +799,10 @@
             </div>
         </div>
 
-    </div> <!-- PINDAHKAN PENETUP view-evaluasi KE SINI -->
+        </div> <!-- PINDAHKAN PENETUP view-evaluasi KE SINI -->
 
-                    <p style="font-size:0.75rem; color:var(--text-muted);">Masukkan link form soal untuk di-scan oleh mahasiswa.</p>
+
                     
-                    <label>Judul Evaluasi / Mata Kuliah</label>
-                    <input type="text" id="evaluasi-judul-soal" placeholder="Contoh: KMB Keperawatan Dasar">
-                    
-                    <label>Link Eksternal (Google Form / CBT)</label>
-                    <input type="url" id="evaluasi-link-soal" placeholder="https://forms.gle/...">
-                    
-                    <button class="btn-primary" style="background:#8E44AD; border:none; margin-top:10px;" onclick="generateQRSoalEvaluasi()">GENERATE BARCODE SOAL</button>
-                    
-                    <div id="wadah-qr-evaluasi" style="margin-top:15px; text-align:center; display:none;">
-                        <div id="qr-evaluasi-canvas" style="display:flex; justify-content:center; padding:15px; background:#fff; border-radius:10px; border:2px dashed #ccc;"></div>
-                        <p style="font-size:0.8rem; margin-top:10px; color:var(--text-muted);">Proyeksikan barcode ini agar bisa di-scan mahasiswa.</p>
-                    </div>
-                </div>
 
                         <!-- VIEW IZIN -->
             <div id="view-izin" class="hidden page-view">
@@ -2107,18 +2094,21 @@ if (typeof jsQR === 'undefined') { const jsq = document.createElement('script');
     let base64TempImages = { logo: '', bg_login: '', bg_idcard: '', ttd_mudir: '' }, tempFotoSantriBase64 = ''; 
     let tempFotoPegawaiBase64 = '', tempSelfFotoBase64 = '';
 const defaultAkses = { 
-    superadmin: ['view-santri', 'view-walikelas', 'view-evaluasi', 'view-izin', 'view-rekap', 'view-kelas', 'view-absen', 'view-scanner-wireless', 'view-keuangan', 'view-tabungan', 'view-paguyuban', 'view-yayasan', 'view-lokasi', 'view-hak-akses', 'view-pengguna', 'view-database', 'view-absen-mahasiswa'], 
+    superadmin: ['view-santri', 'view-walikelas', 'view-evaluasi', 'view-izin', 'view-rekap', 'view-kelas', 'view-absen', 'view-scanner-wireless', 'view-keuangan', 'view-tabungan', 'view-paguyuban', 'view-yayasan', 'view-lokasi', 'view-hak-akses', 'view-pengguna', 'view-database', 'view-absen-mahasiswa', 'view-evaluasi-mahasiswa'], 
     admin: ['view-santri', 'view-walikelas', 'view-evaluasi', 'view-izin', 'view-rekap', 'view-kelas', 'view-scanner-wireless', 'view-database', 'view-tabungan'], 
     ustadz: ['view-absen', 'view-walikelas', 'view-evaluasi', 'view-scanner-wireless', 'view-database'], 
     accounting: ['view-keuangan', 'view-tabungan', 'view-database'],
     paguyuban: ['view-paguyuban'],
-    mahasiswa: ['view-absen-mahasiswa']
+    mahasiswa: ['view-absen-mahasiswa', 'view-evaluasi-mahasiswa']
 };
+
 
 
 const menuMaster = [ 
     { id: 'view-absen-mahasiswa', nama: 'Absen Mandiri', icon: 'fa-expand' },
+    { id: 'view-evaluasi-mahasiswa', nama: 'Scan Soal (Evaluasi)', icon: 'fa-qrcode' },
     { id: 'view-walikelas', nama: 'Kelas Saya', icon: 'fa-chalkboard-user' },
+
     { id: 'view-paguyuban', nama: 'Kasir', icon: 'fa-store' },
     { id: 'view-santri', icon: 'fa-id-card' }, 
 
@@ -3310,14 +3300,18 @@ function gantiInstansi() {
         if (!scannerSoal) {
             scannerSoal = new Html5Qrcode("qr-reader-soal");
             scannerSoal.start({ facingMode: "environment" }, { fps: 15, qrbox: { width: 250, height: 250 } }, (rawScan) => {
-                try {
+                                try {
                     let parsed = JSON.parse(rawScan);
                     if (parsed.tipe === 'SOAL_EVALUASI' && parsed.l) {
                         document.getElementById('judul-soal-tampil').innerText = parsed.j || "Evaluasi Ujian";
                         document.getElementById('link-soal-tampil').href = parsed.l;
                         document.getElementById('hasil-scan-soal').classList.remove('hidden');
                         stopScanSoalMahasiswa();
+                        
+                        // Perintah untuk otomatis membuka tab baru Google Form
+                        window.open(parsed.l, '_blank');
                     } else {
+
                         alert("Barcode tidak valid untuk menu ini.");
                     }
                 } catch(e) {
