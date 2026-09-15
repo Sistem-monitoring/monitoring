@@ -1452,7 +1452,7 @@
         Menganalisis data...
     </div>
 </div>
-
+</div>
 <!-- VIEW EVALUASI MAHASISWA -->
 <div id="view-evaluasi-mahasiswa" class="hidden page-view">
     <div class="card card-premium" style="border-left-color: #8E44AD;">
@@ -8272,64 +8272,69 @@ function mulaiScanKoneksiKampus() {
     }
 }
 
-async function kirimPendaftaranMahasiswa() {
+// === PERBAIKAN: PENDAFTARAN MANDIRI TERHUBUNG KE KELAS ===
+function kirimPendaftaranMahasiswa() {
     const nim = document.getElementById('reg-mhs-nim').value.trim();
     const nama = document.getElementById('reg-mhs-nama').value.trim();
     const wa = document.getElementById('reg-mhs-wa').value.trim();
-    const pwd = document.getElementById('reg-mhs-password').value;
+    const password = document.getElementById('reg-mhs-password').value;
+    const kelasId = document.getElementById('reg-mhs-kelas').value;
 
-    if(!nim || !nama || !wa || !pwd) return alert("Semua kolom wajib diisi!");
+    if (!nim || !nama || !password) {
+        return alert("NIM/Nomor Induk, Nama Lengkap, dan Password wajib diisi!");
+    }
 
-    const btn = document.getElementById('btn-kirim-daftar');
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> MENGIRIM...';
-    btn.disabled = true;
+    let users = getDB('pondok_users', []);
+    if (users.some(u => u.username === nim)) {
+        return alert("Nomor Induk / NIM tersebut sudah terdaftar di sistem!");
+    }
 
-    const payload = {
-        id_daftar: Date.now(), nim: nim, nama: nama, wa: wa,
-        password: pwd, status: "pending", waktu: new Date().toISOString()
-    };
+    // 1. Buat Akun Login Mahasiswa
+    users.push({
+        id: Date.now(),
+        nama: nama,
+        username: nim,
+        password: password,
+        role: "mahasiswa",
+        nik: nim,
+        foto: "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+    });
+    setDB('pondok_users', users);
 
-    try {
-        if (activeCloudProvider === 'firebase') {
-            let fbUrl = firebaseConfig.url.trim().replace(/\/+$/, '');
-            let fbKey = firebaseConfig.key ? `?auth=${firebaseConfig.key}` : "";
-            await fetch(`${fbUrl}/pendaftar_pending.json${fbKey}`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-            });
-        } else {
-            await fetch(`${supabaseConfig.url}/rest/v1/pendaftar_pending`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'apikey': supabaseConfig.key, 'Authorization': `Bearer ${supabaseConfig.key}` },
-                body: JSON.stringify(payload)
-            });
+    // 2. Buat Entri Data Santri/Mahasiswa Aktif
+    let santriDB = getDB('pondok_santri', []);
+    const santriId = Date.now() + 1;
+    santriDB.push({
+        id: santriId,
+        nis: nim,
+        nik: nim,
+        nama: nama,
+        alamat: "Pendaftaran Mandiri (WA: " + (wa || '-') + ")",
+        asrama: "Umum",
+        kamar: "Mandiri",
+        foto: "https://cdn-icons-png.flaticon.com/512/847/847969.png",
+        is_alumni: false,
+        tahun_lulus: null
+    });
+    setDB('pondok_santri', santriDB);
+
+    // 3. Masukkan ID ke dalam array santri_ids di kelas yang dipilih (MEMPERBAIKI BUG KELAS KOSONG)
+    if (kelasId) {
+        let dbKelas = getDB('pondok_kelas', []);
+        let klsIndex = dbKelas.findIndex(k => k.id == kelasId);
+        if (klsIndex > -1) {
+            if (!dbKelas[klsIndex].santri_ids) {
+                dbKelas[klsIndex].santri_ids = [];
+            }
+            if (!dbKelas[klsIndex].santri_ids.includes(santriId)) {
+                dbKelas[klsIndex].santri_ids.push(santriId);
+                setDB('pondok_kelas', dbKelas);
+            }
         }
-        alert("Pendaftaran Berhasil Terkirim!\n\nSilakan informasikan Dosen/Admin untuk memvalidasi akun Anda agar bisa Login.");
-        tutupModalDaftarMahasiswa();
-    } catch (err) {
-        alert("Gagal mengirim data. Pastikan koneksi stabil ATAU Admin belum membuat tabel 'pendaftar_pending' di Supabase.");
     }
-    btn.innerHTML = 'KIRIM PENDAFTARAN';
-    btn.disabled = false;
-}
 
-// --- DOSEN: GENERATE QR KELAS ---
-function generateQRAbsenSesi() {
-    const idMapel = document.getElementById('pilih-mapel-absen').value;
-    if (!idMapel) return alert("Pilih mata kuliah terlebih dahulu di menu atas!");
-    
-    const mObj = getDB('pondok_master_mapel', []).find(x => x.id == idMapel);
-    if (!mObj) return;
-
-    document.getElementById('nama-mapel-qr').innerText = mObj.nama_mapel.toUpperCase() + "\n(Dosen: " + mObj.ustadz_nama + ")";
-    document.getElementById('modal-qr-sesi').classList.remove('hidden');
-
-    const payload = JSON.stringify({ jns: "ABS", idm: idMapel, tgl: new Date().toISOString().split('T')[0] });
-
-    const wadah = document.getElementById('wadah-qr-sesi');
-    wadah.innerHTML = '';
-    if (typeof QRCode !== 'undefined') {
-        new QRCode(wadah, { text: payload, width: 320, height: 320, correctLevel: QRCode.CorrectLevel.M, colorDark: "#04432A", colorLight: "#ffffff" });
-    }
+    alert("Pendaftaran Berhasil!\nSilakan login menggunakan NIM dan Password Anda.");
+    tutupModalDaftarMahasiswa();
 }
 
 // --- MAHASISWA: SCAN ABSEN MANDIRI ---
