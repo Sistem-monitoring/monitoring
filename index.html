@@ -6279,7 +6279,10 @@ async function sinkronisasiKeCloud() {
                         tombstone_santri: payloadMerged.tombstone_santri, tombstone_kelas: payloadMerged.tombstone_kelas, tombstone_mapel: payloadMerged.tombstone_mapel,
                         tombstone_users: payloadMerged.tombstone_users, tombstone_tagihan: payloadMerged.tombstone_tagihan, tombstone_izin_aktif: payloadMerged.tombstone_izin_aktif,
                         tombstone_bank_mapel: payloadMerged.tombstone_bank_mapel, tombstone_jam_kustom: payloadMerged.tombstone_jam_kustom,
-                        jam_kustom: payloadMerged.jam_kustom, bank_mapel: payloadMerged.bank_mapel
+                        jam_kustom: payloadMerged.jam_kustom, bank_mapel: payloadMerged.bank_mapel, 
+                        gps: payloadMerged.gps,
+        akses: payloadMerged.akses,
+        setting_keuangan: payloadMerged.setting_keuangan
                     })
                 });
                 if (!r4.ok) throw new Error(`Gagal (Lainnya): HTTP ${r4.status}`);
