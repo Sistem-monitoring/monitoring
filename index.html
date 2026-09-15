@@ -1426,8 +1426,33 @@
         <div id="qr-reader-mahasiswa" style="width:100%; display:none; margin-top:14px; border-radius:12px; overflow:hidden; border:3px solid var(--info);"></div>
         
         <div id="hasil-absen-mhs" style="margin-top:15px; text-align:center; font-weight:bold; font-size:1.1rem;"></div>
+
+<!-- TAMBAHAN: PANEL REKAP KEHADIRAN MAHASISWA -->
+<div class="card" style="margin-top: 25px; background: rgba(255,255,255,0.9); border: 1px solid rgba(0,0,0,0.1); padding: 15px;">
+    <h4 style="color: var(--primary); margin-bottom: 12px; font-size: 0.95rem;"><i class="fa-solid fa-chart-pie"></i> Rekap Kehadiran Saya</h4>
+    <div style="display: flex; justify-content: space-around; align-items: center; margin-bottom: 15px;">
+        <div style="text-align: center;">
+            <span style="font-size: 1.8rem; font-weight: 900; color: var(--success);" id="mhs-rekap-hadir">0</span><br>
+            <span style="font-size: 0.75rem; font-weight: 600;">Hadir</span>
+        </div>
+        <div style="text-align: center;">
+            <span style="font-size: 1.8rem; font-weight: 900; color: var(--warning);" id="mhs-rekap-izin">0</span><br>
+            <span style="font-size: 0.75rem; font-weight: 600;">Izin/Sakit</span>
+        </div>
+        <div style="text-align: center;">
+            <span style="font-size: 1.8rem; font-weight: 900; color: var(--danger);" id="mhs-rekap-alpa">0</span><br>
+            <span style="font-size: 0.75rem; font-weight: 600;">Alpa</span>
+        </div>
+        <div style="text-align: center; border-left: 2px dashed #ccc; padding-left: 15px;">
+            <span style="font-size: 1.4rem; font-weight: 900; color: var(--info);" id="mhs-rekap-persen">0%</span><br>
+            <span style="font-size: 0.75rem; font-weight: 600;">Rasio</span>
+        </div>
+    </div>
+    <div id="mhs-status-evaluasi" style="padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.85rem; background: #f8f9fa; color: #333;">
+        Menganalisis data...
     </div>
 </div>
+
 <!-- VIEW EVALUASI MAHASISWA -->
 <div id="view-evaluasi-mahasiswa" class="hidden page-view">
     <div class="card card-premium" style="border-left-color: #8E44AD;">
@@ -3740,7 +3765,9 @@ function registerServiceWorker() {
         if(lastTab === 'view-izin') renderTabelIzinAktif();
                 if(lastTab === 'view-kelas') { renderMasterMapel(); renderTabelDaftarKelas(); renderJamKustom(); renderDropdownWaliKelas(); }    
                           if (lastTab === 'view-absen' || lastTab === 'view-absen-mahasiswa') startAnalisisGPSUstadz(); 
-        if (lastTab === 'view-evaluasi-mahasiswa') cekKelayakanEvaluasiMahasiswa();
+if (lastTab === 'view-absen-mahasiswa') renderRekapPribadiMahasiswa(); // <-- Ini baris pemanggil baru
+if (lastTab === 'view-evaluasi-mahasiswa') cekKelayakanEvaluasiMahasiswa();
+
         if (lastTab === 'view-scanner-wireless') { document.getElementById('input-dummy-wireless').focus(); document.getElementById('input-dummy-wireless').value = ''; }
 
 
@@ -8306,35 +8333,141 @@ function generateQRAbsenSesi() {
 }
 
 // --- MAHASISWA: SCAN ABSEN MANDIRI ---
+let scannerMhs = null; // Pastikan variabel ini ada untuk mengontrol kamera
+
 function mulaiScanAbsenMahasiswa() {
     if (typeof Html5Qrcode === 'undefined') return alert("Library Scanner belum siap.");
-    document.getElementById('qr-reader-mahasiswa').style.display = 'block';
-    document.getElementById('btn-scan-mhs').style.display = 'none';
-    document.getElementById('btn-stop-scan-mhs').style.display = 'block';
     
-    if (!scannerAbsenMhs) {
-        scannerAbsenMhs = new Html5Qrcode("qr-reader-mahasiswa");
-        scannerAbsenMhs.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, async (res) => {
-            try {
-                const obj = JSON.parse(res);
-                if (obj.jns === "ABS" && obj.idm) {
-                    stopScanAbsenMahasiswa();
-                    document.getElementById('hasil-absen-mhs').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim Kehadiran...';
-                    await prosesKirimAbsenMandiri(obj.idm, obj.tgl);
-                }
-            } catch(e) {}
-        }).catch(() => {});
+    const qrReader = document.getElementById('qr-reader-mahasiswa');
+    const btnScan = document.getElementById('btn-scan-mhs');
+    const btnStop = document.getElementById('btn-stop-scan-mhs');
+    const hasilDiv = document.getElementById('hasil-absen-mhs');
+    
+    qrReader.style.display = 'block';
+    btnScan.style.display = 'none';
+    btnStop.style.display = 'block';
+    hasilDiv.innerHTML = ''; 
+    
+    if (!scannerMhs) {
+        scannerMhs = new Html5Qrcode("qr-reader-mahasiswa");
+        scannerMhs.start(
+            { facingMode: "environment" }, 
+            { fps: 15, qrbox: { width: 250, height: 250 } }, 
+            (rawScan) => {
+                // 1. Matikan kamera seketika setelah berhasil membaca barcode
+                stopScanAbsenMahasiswa();
+                
+                // 2. Ubah UI menjadi status "Hadir"
+                hasilDiv.innerHTML = `
+                    <div style="background: var(--success); color: white; padding: 25px 20px; border-radius: 16px; box-shadow: 0 10px 25px rgba(52, 199, 89, 0.4);">
+                        <i class="fa-solid fa-circle-check fa-3x" style="margin-bottom: 10px;"></i>
+                        <h2 style="margin: 0; font-weight: 900; letter-spacing: 2px;">ANDA HADIR</h2>
+                        <p style="margin: 5px 0 0 0; font-size: 0.85rem; opacity: 0.9;">Data kehadiran berhasil disimpan secara lokal.</p>
+                    </div>
+                `;
+                
+                // 3. Efek Suara
+                if (typeof playPremiumBeep === 'function') playPremiumBeep();
+                
+                // 4. Simpan data absensi ke penyimpanan lokal
+                simpanAbsenHadirMahasiswa(rawScan);
+                
+                // 5. Perbarui persentase 75%
+                renderRekapPribadiMahasiswa();
+            }
+        ).catch((err) => {
+            console.log("Kamera sedang inisialisasi:", err);
+        });
     }
 }
 
 function stopScanAbsenMahasiswa() {
-    if(scannerAbsenMhs) {
-        scannerAbsenMhs.stop().then(() => { 
-            scannerAbsenMhs = null; 
+    if (scannerMhs) {
+        scannerMhs.stop().then(() => {
             document.getElementById('qr-reader-mahasiswa').style.display = 'none';
             document.getElementById('btn-scan-mhs').style.display = 'block';
             document.getElementById('btn-stop-scan-mhs').style.display = 'none';
+            scannerMhs = null;
         });
+    } else {
+        document.getElementById('qr-reader-mahasiswa').style.display = 'none';
+        document.getElementById('btn-scan-mhs').style.display = 'block';
+        document.getElementById('btn-stop-scan-mhs').style.display = 'none';
+    }
+}
+
+function simpanAbsenHadirMahasiswa(dataBarcode) {
+    let dbPengajuan = getDB('pondok_pengajuan_absen', []);
+    
+    // Mencegah spam scan berulang di waktu yang sama (jeda 1 menit)
+    const lastScan = dbPengajuan.filter(p => p.nis === currentUser.username).pop();
+    if (lastScan && (Date.now() - lastScan.id) < 60000) return; 
+
+    dbPengajuan.push({
+        id: Date.now(),
+        nis: currentUser.username, 
+        nama: currentUser.nama,
+        status: 'Hadir',
+        alasan: 'Hadir via Scan Barcode Mandiri',
+        qr_data: dataBarcode, 
+        foto_bukti: '',
+        tanggal: new Date().toISOString(),
+        terverifikasi: false // Menunggu dikirim ke Cloud
+    });
+    setDB('pondok_pengajuan_absen', dbPengajuan);
+}
+
+function renderRekapPribadiMahasiswa() {
+    if (!currentUser || currentUser.role !== 'mahasiswa') return;
+    const nisMhs = currentUser.username;
+    let hadir = 0, izinSakit = 0, alpa = 0, totalSesi = 0;
+    
+    // Hitung absen yang sudah disahkan
+    const absensiDB = getDB('pondok_absensi', []);
+    absensiDB.forEach(sesi => {
+        const historiMhs = sesi.detail.find(d => d.nis === nisMhs);
+        if (historiMhs) {
+            totalSesi++;
+            if (historiMhs.status === 'Hadir') hadir++;
+            else if (historiMhs.status === 'Izin' || historiMhs.status === 'Sakit') izinSakit++;
+            else if (historiMhs.status === 'Alpa') alpa++;
+        }
+    });
+    
+    // Hitung absen mandiri yang belum ditarik / di-sync
+    const dbPengajuan = getDB('pondok_pengajuan_absen', []);
+    dbPengajuan.forEach(p => {
+        if (p.nis === nisMhs) {
+            totalSesi++;
+            if (p.status === 'Hadir') hadir++;
+            else if (p.status === 'Izin' || p.status === 'Sakit') izinSakit++;
+            else alpa++;
+        }
+    });
+
+    if (document.getElementById('mhs-rekap-hadir')) document.getElementById('mhs-rekap-hadir').innerText = hadir;
+    if (document.getElementById('mhs-rekap-izin')) document.getElementById('mhs-rekap-izin').innerText = izinSakit;
+    if (document.getElementById('mhs-rekap-alpa')) document.getElementById('mhs-rekap-alpa').innerText = alpa;
+    
+    const persentase = totalSesi === 0 ? 100 : ((hadir / totalSesi) * 100);
+    if (document.getElementById('mhs-rekap-persen')) document.getElementById('mhs-rekap-persen').innerText = persentase.toFixed(1) + '%';
+    
+    const yayasan = getDB('pondok_yayasan', {});
+    const standarMinimum = parseFloat(yayasan.standar_absen) || 75; 
+    const statusBox = document.getElementById('mhs-status-evaluasi');
+    
+    if (statusBox) {
+        if (persentase >= standarMinimum) {
+            statusBox.style.background = 'rgba(52, 199, 89, 0.1)';
+            statusBox.style.color = 'var(--success)';
+            statusBox.style.border = '1px solid rgba(52, 199, 89, 0.3)';
+            statusBox.innerHTML = `<i class="fa-solid fa-check-circle"></i> Berhak Mengikuti Evaluasi (Min. ${standarMinimum}%)`;
+        } else {
+            statusBox.style.background = 'rgba(255, 59, 48, 0.1)';
+            statusBox.style.color = 'var(--danger)';
+            statusBox.style.border = '1px solid rgba(255, 59, 48, 0.3)';
+            statusBox.innerHTML = `<i class="fa-solid fa-ban"></i> Belum Memenuhi Syarat Evaluasi (Min. ${standarMinimum}%)`;
+        }
     }
 }
 
