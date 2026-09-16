@@ -1692,11 +1692,21 @@
         <label>Username Login</label>
         <input type="text" id="self-username" placeholder="Username...">
 
-        <label>Password Baru</label>
-        <input type="password" id="self-password" placeholder="Kosongkan jika tidak diubah...">
+                    <label>Password Baru</label>
+            <input type="password" id="self-password" placeholder="Kosongkan jika tidak diubah...">
 
-        <div style="display:flex; gap:10px; margin-top:16px;">
-            <button type="button" class="btn-outline" style="flex:1; justify-content:center; margin:0;" onclick="tutupModalEditSelfProfile()">Batal</button>
+            <!-- TAMBAHAN: Area Pilih Kelas Khusus Mahasiswa -->
+            <div id="self-area-kelas" class="hidden" style="margin-top: 15px; background: #f9f9f9; padding: 12px; border-radius: 8px; border: 1px solid #ddd;">
+                <label style="color: var(--primary); margin-top: 0;"><i class="fa-solid fa-layer-group"></i> Pilih Kelas Anda</label>
+                <select id="self-kelas" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; background: #fff; font-size: 0.9rem; margin-top: 5px;">
+                    <option value="">-- Memuat daftar kelas... --</option>
+                </select>
+            </div>
+            <!-- AKHIR TAMBAHAN -->
+
+            <div style="display:flex; gap:10px; margin-top:16px;">
+                <button type="button" class="btn-outline" style="flex:1; justify-content:center; margin:0;" onclick="tutupModalEditSelfProfile()">Batal</button>
+                
             <button type="button" class="btn-primary" style="flex:1; margin:0;" onclick="simpanSelfProfile()"><i class="fa-solid fa-check"></i> Simpan Profil</button>
         </div>
     </div>
@@ -3074,15 +3084,46 @@ function renderNotifInternal() {
     });
 
 
-    function bukaModalEditSelfProfile() {
+        function bukaModalEditSelfProfile() {
         if(!currentUser) return;
         document.getElementById('self-nama').value = currentUser.nama || "";
         document.getElementById('self-username').value = currentUser.username || "";
         document.getElementById('self-password').value = "";
         document.getElementById('self-preview-foto').src = currentUser.foto || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
         tempSelfFotoBase64 = "";
+
+        // --- TAMBAHAN LOGIKA MUNCULKAN PILIHAN KELAS ---
+        const areaKelas = document.getElementById('self-area-kelas');
+        if (areaKelas) {
+            // Cek apakah user adalah mahasiswa (atau santri)
+            if (currentUser.role === 'mahasiswa' || currentUser.role === 'santri') {
+                areaKelas.classList.remove('hidden');
+                const selectKelas = document.getElementById('self-kelas');
+                selectKelas.innerHTML = '<option value="">-- Pilih Kelas Anda --</option>';
+                
+                const dbKelas = getDB('pondok_kelas', []);
+                const santriList = getDB('pondok_santri', []);
+                const mySantri = santriList.find(s => s.nis === currentUser.username);
+                const myIdSantri = mySantri ? mySantri.id : null;
+
+                let myKelasId = "";
+                dbKelas.forEach(k => {
+                    // Cari kelas mahasiswa ini saat ini
+                    if (myIdSantri && (k.santri_ids || []).includes(myIdSantri)) {
+                        myKelasId = k.id;
+                    }
+                    selectKelas.innerHTML += `<option value="${k.id}">${k.nama}</option>`;
+                });
+                selectKelas.value = myKelasId; // Set dropdown ke kelas saat ini
+            } else {
+                areaKelas.classList.add('hidden'); // Sembunyikan untuk Admin/Dosen
+            }
+        }
+        // --- AKHIR TAMBAHAN ---
+
         document.getElementById('modal-edit-profil-self').classList.remove('hidden');
     }
+
 
     function tutupModalEditSelfProfile() {
         document.getElementById('modal-edit-profil-self').classList.add('hidden');
@@ -3096,7 +3137,6 @@ function renderNotifInternal() {
             document.getElementById('self-preview-foto').src = res;
         });
     }
-
     function simpanSelfProfile() {
         const nama = document.getElementById('self-nama').value.trim();
         const username = document.getElementById('self-username').value.trim().toLowerCase();
@@ -3113,18 +3153,55 @@ function renderNotifInternal() {
             if(password && password.trim() !== "") users[idx].password = password;
             if(tempSelfFotoBase64 !== "") users[idx].foto = tempSelfFotoBase64;
 
+            // --- TAMBAHAN PROSES PINDAH KELAS MAHASISWA ---
+            if (currentUser.role === 'mahasiswa' || currentUser.role === 'santri') {
+                const selectKelas = document.getElementById('self-kelas');
+                if (selectKelas && selectKelas.value !== "") {
+                    const selectedKelasId = parseInt(selectKelas.value);
+                    const santriList = getDB('pondok_santri', []);
+                    const mySantri = santriList.find(s => s.nis === currentUser.username);
+                    
+                    if (mySantri && selectedKelasId) {
+                        let dbKelas = getDB('pondok_kelas', []);
+                        
+                        // 1. Keluarkan mahasiswa dari kelas lamanya terlebih dahulu
+                        dbKelas.forEach(k => {
+                            if (k.santri_ids) {
+                                k.santri_ids = k.santri_ids.filter(sid => sid !== mySantri.id);
+                            }
+                        });
+                        
+                        // 2. Masukkan mahasiswa ke kelas yang baru dipilih
+                        const klsBaruIdx = dbKelas.findIndex(k => k.id === selectedKelasId);
+                        if (klsBaruIdx > -1) {
+                            if (!dbKelas[klsBaruIdx].santri_ids) dbKelas[klsBaruIdx].santri_ids = [];
+                            dbKelas[klsBaruIdx].santri_ids.push(mySantri.id);
+                        }
+                        
+                        // 3. Simpan perubahan ke database
+                        setDB('pondok_kelas', dbKelas);
+                    }
+                }
+            }
+            // --- AKHIR TAMBAHAN ---
+
             currentUser = users[idx];
-           setDB('pondok_users', users);
-setDB('pondok_active_user', currentUser);
+            setDB('pondok_users', users);
+            setDB('pondok_active_user', currentUser);
 
             document.getElementById('header-user-name').innerText = currentUser.nama;
             document.getElementById('header-user-photo').src = currentUser.foto || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
             alert("Profil Anda berhasil diperbarui!");
             tutupModalEditSelfProfile();
-            renderTabelPegawai();
+            
+            // Panggil render ulang tabel jika fungsi tersedia
+            if (typeof renderTabelPegawai === 'function') renderTabelPegawai();
+            if (typeof triggerSyncCloudQuick === 'function') triggerSyncCloudQuick();
         }
     }
+
+    
     // --- FUNGSI UPDATE ANGKA NOTIFIKASI ---
     function updateBadgeNotifikasi(jumlahBaru) {
         const badgeElement = document.getElementById('angka-notif');
