@@ -1022,30 +1022,40 @@
                     <div id="gps-status-box" style="padding: 12px; border-radius: 10px; font-weight: bold; margin-bottom: 14px; display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-spinner fa-spin"></i> Mengecek GPS & Jarak Radius...</div>
 
                     <div id="absen-form-container" class="hidden">
-                        <label>Pilih Mata Pelajaran (Lintas Kelas)</label>
-                        <select id="pilih-mapel-absen" onchange="renderAbsenSantriByMapel()"></select>
-                        
-                                            <!-- KODE PERBAIKAN -->
-<div style="display: flex; gap: 8px; margin-bottom: 6px;">
-    <button class="btn-primary" onclick="bukaAksesAbsenDosen()" style="flex: 1; padding: 14px; font-size:0.85rem; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.15); background: var(--success); border: none;">
-        <i class="fa-solid fa-lock-open"></i> BUKA AKSES ABSEN
+    <label>Pilih Mata Pelajaran (Lintas Kelas)</label>
+    <select id="pilih-mapel-absen" onchange="renderAbsenSantriByMapel()"></select>
+    
+    <!-- 1. OPSI MANUAL: DOSEN SCAN KARTU MAHASISWA -->
+    <button class="btn-primary" onclick="startScanner()" style="width:100%; padding: 14px; font-size:0.85rem; border-radius: 12px; margin-bottom:14px; background: var(--primary); border: none; font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
+        <i class="fa-solid fa-camera"></i> SCAN KARTU (MANUAL)
     </button>
-    <button class="btn-outline" onclick="generateQRAbsenSesi()" style="flex: 1; padding: 14px; font-size:0.85rem; border-radius: 12px; border-color: var(--info); color: var(--info); justify-content: center; font-weight: bold;">
-        <i class="fa-solid fa-qrcode"></i> QR (OPSIONAL)
+
+    <!-- GARIS PEMISAH UI -->
+    <div style="text-align: center; margin-bottom: 14px; font-size: 0.75rem; color: var(--text-muted); font-weight: bold;">--- ATAU ABSEN MANDIRI ---</div>
+
+    <!-- 2. OPSI MANDIRI: MAHASISWA KLIK / SCAN QR DOSEN -->
+    <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+        <button class="btn-primary" onclick="bukaAksesAbsenDosen()" style="flex: 1; padding: 14px; font-size:0.85rem; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.15); background: var(--success); border: none;">
+            <i class="fa-solid fa-lock-open"></i> BUKA AKSES ABSEN
+        </button>
+        <button class="btn-outline" onclick="generateQRAbsenSesi()" style="flex: 1; padding: 14px; font-size:0.85rem; border-radius: 12px; border-color: var(--info); color: var(--info); justify-content: center; font-weight: bold;">
+            <i class="fa-solid fa-qrcode"></i> QR PROYEKTOR
+        </button>
+    </div>
+    
+    <div id="info-waktu-akses" style="margin-bottom: 12px; font-size: 0.8rem; color: var(--success); font-weight: bold; text-align: center; display: none; background: rgba(52, 199, 89, 0.1); padding: 8px; border-radius: 8px;">
+        <i class="fa-solid fa-clock"></i> Akses Kelas Dibuka: <span id="teks-waktu-buka"></span> WITA
+    </div>
+    
+    <button class="btn-warning" id="btn-tarik-mhs" onclick="tarikAbsenMandiriTepatWaktu()" style="width:100%; padding: 14px; font-size:0.85rem; border-radius: 12px; margin-bottom:14px; background: #E67E22; border: none; font-weight: bold; box-shadow: 0 5px 15px rgba(230,126,34,0.3);">
+        <i class="fa-solid fa-cloud-arrow-down"></i> TARIK DATA MHS (CEK WAKTU)
     </button>
-</div>
-<div id="info-waktu-akses" style="margin-bottom: 12px; font-size: 0.8rem; color: var(--success); font-weight: bold; text-align: center; display: none; background: rgba(52, 199, 89, 0.1); padding: 8px; border-radius: 8px;">
-    <i class="fa-solid fa-clock"></i> Akses Kelas Dibuka: <span id="teks-waktu-buka"></span> WITA
-</div>
-<button class="btn-warning" id="btn-tarik-mhs" onclick="tarikAbsenMandiriTepatWaktu()" style="width:100%; padding: 14px; font-size:0.85rem; border-radius: 12px; margin-bottom:14px; background: #E67E22; border: none; font-weight: bold; box-shadow: 0 5px 15px rgba(230,126,34,0.3);">
-    <i class="fa-solid fa-cloud-arrow-down"></i> TARIK DATA MHS (CEK WAKTU)
-</button>
-  
 
+    <!-- DAFTAR MAHASISWA & TOMBOL SIMPAN -->
+    <div id="student-list" style="margin-top: 10px;"></div>
+    <button class="btn-primary" onclick="kirimDataAbsen()" style="margin-top: 18px;"><i class="fa-solid fa-save"></i> SIMPAN ABSENSI</button>
+</div>
 
-                                                <div id="student-list" style="margin-top: 10px;"></div>
-                        <button class="btn-primary" onclick="kirimDataAbsen()" style="margin-top: 18px;"><i class="fa-solid fa-save"></i> SIMPAN ABSENSI</button>
-                    </div>
                 </div>
             </div>
             
@@ -1427,10 +1437,16 @@
         </div>
         <!-- 👆 AREA FORM DOKUMEN 👆 -->
 
-        <!-- KODE PERBAIKAN -->
-<button class="btn-primary" onclick="klikAbsenHadirMahasiswa()" id="btn-scan-mhs" style="width:100%; padding: 16px; font-size:1.05rem; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.15); display:none; background: var(--success); border: none;">
-    <i class="fa-solid fa-hand-pointer"></i> KLIK ABSEN HADIR SEKARANG
-</button>
+                <!-- KODE PERBAIKAN -->
+<div id="btn-scan-mhs" style="display:none; width:100%;">
+    <button class="btn-primary" onclick="startScannerMahasiswa()" style="width:100%; padding: 16px; font-size:1.05rem; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.15); background: var(--info); border: none; margin-bottom: 10px;">
+        <i class="fa-solid fa-qrcode"></i> SCAN BARCODE ABSENSI
+    </button>
+    <button class="btn-primary" onclick="klikAbsenHadirMahasiswa()" style="width:100%; padding: 16px; font-size:1.05rem; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.15); background: var(--success); border: none;">
+        <i class="fa-solid fa-hand-pointer"></i> KLIK ABSEN HADIR SEKARANG
+    </button>
+</div>
+
 
 <div id="info-absen-lokal" style="margin-top: 15px; font-size: 0.85rem; color: #D35400; font-weight: bold; text-align: center; display: none; background: #FDEBD0; padding: 12px; border-radius: 12px; border: 1px dashed #D35400;">
     <i class="fa-solid fa-clock"></i> Waktu Klik Anda: <span id="waktu-klik-mhs"></span><br>
@@ -1597,8 +1613,37 @@
                 <thead><tr><th>NIS/Kamar</th><th>Nama Santri</th><th>Aksi</th></tr></thead>
                 <tbody id="tabel-santri-wali-body"></tbody>
             </table>
+          <!-- ========================================== -->
+    <!-- MULAI KODE BARU: PENGATURAN ATURAN KELAS   -->
+    <!-- ========================================== -->
+    <div id="pengaturan-kelas" style="background-color: #f9f9f9; border: 1px solid #ddd; padding: 20px; border-radius: 8px; margin-top: 20px; margin-bottom: 20px;">
+        <h3 style="margin-top: 0; color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px;">Pengaturan Aturan Evaluasi (UTS/UAS)</h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+            <!-- Input Total Pertemuan -->
+            <div>
+                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Total Pertemuan 1 Semester (Tatap Muka):</label>
+                <input type="number" id="input-total-pertemuan" value="14" style="padding: 10px; width: 100%; max-width: 300px; border: 1px solid #ccc; border-radius: 5px;">
+                <p style="margin: 3px 0 0 0; font-size: 12px; color: #666;">*Masukkan angka jumlah pertemuan murni sebelum ujian (Biasanya 14 atau 16).</p>
+            </div>
+
+            <!-- Input Syarat Persentase -->
+            <div>
+                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Syarat Minimal Kehadiran (%):</label>
+                <input type="number" id="input-min-kehadiran" value="75" style="padding: 10px; width: 100%; max-width: 300px; border: 1px solid #ccc; border-radius: 5px;">
+                <p style="margin: 3px 0 0 0; font-size: 12px; color: #666;">*Mahasiswa di bawah persentase ini sistemnya akan terkunci saat akan ikut UTS/UAS.</p>
+            </div>
+
+            <!-- Tombol Simpan -->
+            <button onclick="simpanAturanKelas()" style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; width: fit-content;">
+                Simpan Aturan Kelas
+            </button>
         </div>
     </div>
+    <!-- ========================================== -->
+    <!-- AKHIR KODE BARU: PENGATURAN ATURAN KELAS   -->
+    <!-- ========================================== -->
+
 
             <!-- Form Tambah/Edit Santri Khusus Wali -->
     <div class="card hidden" id="form-santri-wali-card" style="border:2px dashed var(--success);">
@@ -3604,6 +3649,129 @@ function simpanPengajuanAbsenMhs() {
     document.getElementById('mhs_alpa').checked = true;
     toggleFormDokumenAbsen('Alpa');
 }
+function generateQRAbsenSesi() {
+    const mapelSelect = document.getElementById("pilih-mapel-absen");
+    const mapel = mapelSelect ? mapelSelect.value : "";
+    
+    if (!mapel) {
+        alert("Pilih mata pelajaran terlebih dahulu sebelum menampilkan QR!");
+        return;
+    }
+
+    const tanggalSesi = new Date().toISOString().split('T')[0];
+    const dataQR = "ABSEN_" + mapel + "_" + tanggalSesi;
+    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(dataQR)}`;
+
+    // PERBAIKAN: Gunakan ID 'wadah-qr-sesi' sesuai HTML
+    const qrContainer = document.getElementById("wadah-qr-sesi");
+    if(qrContainer) {
+        qrContainer.innerHTML = `<img src="${qrImageUrl}" alt="QR Absen" style="margin: 0 auto; display: block; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">`;
+    }
+
+    // Tampilkan nama mapel pada modal jika elemennya ada
+    const labelMapel = document.getElementById("nama-mapel-qr");
+    if(labelMapel && mapelSelect.selectedIndex > -1) {
+        labelMapel.innerText = mapelSelect.options[mapelSelect.selectedIndex].text;
+    }
+
+    const modalQr = document.getElementById("modal-qr-sesi");
+    if(modalQr) {
+        modalQr.classList.remove("hidden");
+    }
+}
+
+function startScannerMahasiswa() {
+    if (typeof Html5Qrcode === 'undefined') return alert("Library Scanner belum siap.");
+    
+    // 1. Tampilkan modal pop-up dan ubah display kamera menjadi block agar tidak blank
+    document.getElementById("modal-scanner-absen").classList.remove("hidden");
+    document.getElementById("qr-reader").style.display = "block";
+    document.getElementById("scan-result").innerHTML = '<span style="color:#666; font-size: 0.9rem;">Arahkan kamera ke QR Code Dosen...</span>';
+    document.body.style.overflow = 'hidden';
+
+    // 2. Gunakan Html5Qrcode biasa (bukan Scanner) dengan ID yang benar: "qr-reader"
+    if (!html5QrcodeScanner) {
+        html5QrcodeScanner = new Html5Qrcode("qr-reader");
+        html5QrcodeScanner.start(
+            { facingMode: "environment" }, 
+            { fps: 15, qrbox: { width: 250, height: 250 } },
+            (decodedText) => {
+                // Jika kamera mahasiswa berhasil membaca sesuatu:
+                if(decodedText.startsWith("ABSEN_")) {
+                    stopScanner(); // Matikan kamera dan tutup modal menggunakan fungsi yang sudah ada
+                    
+                    // Proses absensi
+                    const mapel = decodedText.split("_")[1];
+                    alert("Berhasil! Anda telah tercatat hadir untuk mata pelajaran: " + mapel);
+                    
+                    // TODO: Panggil fungsi untuk mengirim data kehadiran ke database/server di sini
+                    // Contoh: klikAbsenHadirMahasiswa();
+                    
+                } else {
+                    alert("QR Code tidak valid! Pastikan Anda men-scan QR dari proyektor Dosen.");
+                }
+            }
+        ).catch((err) => {
+            alert("Gagal membuka kamera scan Absensi. Pastikan izin kamera diberikan.");
+            stopScanner();
+        });
+    }
+}
+
+    // =========================================================================
+    // MULAI KODE BARU: LOGIKA PENYIMPANAN DAN KALKULASI PERSENTASE KEHADIRAN
+    // =========================================================================
+    
+    // 1. Variabel global untuk menampung pengaturan (Default 14 pertemuan, 75%)
+    let aturanKehadiran = {
+        totalPertemuan: 14, 
+        syaratMinimalPersen: 75 
+    };
+
+    // 2. Fungsi saat Dosen menekan tombol "Simpan Aturan Kelas"
+    function simpanAturanKelas() {
+        // Ambil nilai dari kotak input HTML tadi
+        let inputTotal = document.getElementById("input-total-pertemuan").value;
+        let inputMin = document.getElementById("input-min-kehadiran").value;
+
+        // Validasi agar Dosen tidak memasukkan angka ngawur (misal minus)
+        if(inputTotal <= 0 || inputMin <= 0 || inputMin > 100) {
+            alert("Gagal menyimpan! Pastikan Total Pertemuan > 0 dan Persentase 1-100.");
+            return;
+        }
+
+        // Simpan ke dalam variabel memori sistem
+        aturanKehadiran.totalPertemuan = parseInt(inputTotal);
+        aturanKehadiran.syaratMinimalPersen = parseInt(inputMin);
+
+        alert("BERHASIL!\nAturan Kelas Disimpan:\n- Total Pertemuan: " + aturanKehadiran.totalPertemuan + "\n- Syarat Minimal: " + aturanKehadiran.syaratMinimalPersen + "%");
+        
+        // (Opsional nanti: Tambahkan kode fetch/AJAX ke database di baris ini jika sudah pakai database)
+    }
+
+    // 3. Fungsi OTOMATIS untuk mengecek apakah mahasiswa boleh ikut UTS/UAS
+    // Fungsi ini akan dipanggil nanti saat mahasiswa klik tombol "Mulai Ujian" atau "Cetak Kartu"
+    function cekKelayakanUjian(jumlahHadirMahasiswa) {
+        // RUMUS: (Jumlah Hadir / Total Pertemuan) x 100
+        let persenHadir = (jumlahHadirMahasiswa / aturanKehadiran.totalPertemuan) * 100;
+        
+        // Bulatkan angka desimal (contoh: 71.428% jadi 71.43%)
+        persenHadir = persenHadir.toFixed(2); 
+
+        // Cek apakah persentase kehadiran lebih besar / sama dengan syarat minimal?
+        if (persenHadir >= aturanKehadiran.syaratMinimalPersen) {
+            console.log("Status: LULUS SYARAT (" + persenHadir + "%)");
+            return true; // Beri akses ke soal UTS/UAS
+        } else {
+            console.log("Status: DITOLAK (" + persenHadir + "%)");
+            alert("MAAF, ANDA TIDAK BISA MENGIKUTI EVALUASI!\nPersentase kehadiran Anda hanya " + persenHadir + "%.\nSyarat minimal adalah " + aturanKehadiran.syaratMinimalPersen + "%.");
+            return false; // Blokir akses ke soal UTS/UAS
+        }
+    }
+    // =========================================================================
+    // AKHIR KODE BARU: LOGIKA PENYIMPANAN DAN KALKULASI PERSENTASE KEHADIRAN
+    // =========================================================================
+
 // =========================================================================
 
     /* KODE SESUDAHNYA */
@@ -5151,7 +5319,7 @@ function simpanKelasBaru() {
         });
     }
 
-    function simpanKelasBaru() {
+            function simpanKelasBaru() {
         const namaKelas = document.getElementById('input-nama-kelas').value.trim();
         const waliKelas = document.getElementById('input-wali-kelas').value;
         if (!namaKelas) return alert("Isi nama kelas terlebih dahulu!");
@@ -5164,7 +5332,7 @@ function simpanKelasBaru() {
             santri_ids: [],
             wali_kelas: waliKelas // MENYIMPAN DATA WALI KELAS
         });
-        localStorage.setItem('pondok_kelas', JSON.stringify(listKelas));
+        setDB('pondok_kelas', listKelas);
         
         document.getElementById('input-nama-kelas').value = '';
         document.getElementById('input-wali-kelas').value = '';
@@ -5173,6 +5341,8 @@ function simpanKelasBaru() {
         renderMasterMapel();
         renderTabelDaftarKelas();
     }
+
+
 
     function renderTabelDaftarKelas() {
         const elemenTbodyKelas = document.getElementById('tabel-kelas-body');
@@ -5347,16 +5517,15 @@ function simpanKelasBaru() {
     const formAbsensiArea = document.getElementById('absen-form-container');
     const btnScanMhs = document.getElementById('btn-scan-mhs');
     
-    if(formAbsensiArea) formAbsensiArea.classList.add('hidden');
-    if(btnScanMhs) btnScanMhs.style.display = 'none';
+    // Pastikan form dan tombol selalu terbuka agar tidak terkunci
+    if(formAbsensiArea) formAbsensiArea.classList.remove('hidden');
+    if(btnScanMhs) btnScanMhs.style.display = 'block';
     
     const configGPS = getGPSConfig();
     
     const setValidUI = (pesan) => {
         if(kotakStatusGPS) { kotakStatusGPS.style.background = 'rgba(52, 199, 89, 0.15)'; kotakStatusGPS.style.color = '#27ae60'; kotakStatusGPS.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${pesan}`; }
         if(kotakStatusMhs) { kotakStatusMhs.style.background = 'rgba(52, 199, 89, 0.15)'; kotakStatusMhs.style.color = '#27ae60'; kotakStatusMhs.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${pesan}`; }
-        if(formAbsensiArea) formAbsensiArea.classList.remove('hidden');
-        if(btnScanMhs) btnScanMhs.style.display = 'block';
         if(typeof loadSemuaMapelAbsenForPilihan === 'function') loadSemuaMapelAbsenForPilihan();
     };
 
@@ -5381,22 +5550,31 @@ function simpanKelasBaru() {
     navigator.geolocation.getCurrentPosition((pos) => {
         const myLat = pos.coords.latitude;
         const myLng = pos.coords.longitude;
-        let dalamRadius = false; let titikValid = ""; let jarakTerdekat = Infinity;
+        let dalamRadius = false; 
+        let titikValid = ""; 
+        let jarakTerdekat = Infinity;
 
         configGPS.titik.forEach(t => {
             if (t.lat && t.lng) {
                 const jarak = Math.round(hitungJarakMeter(myLat, myLng, t.lat, t.lng));
                 if (jarak < jarakTerdekat) jarakTerdekat = jarak;
-                if (jarak <= t.radius) { dalamRadius = true; titikValid = t.label; }
+                if (jarak <= t.radius) { 
+                    dalamRadius = true; 
+                    titikValid = t.label; 
+                }
             }
         });
 
-        if (dalamRadius) setValidUI(`Lokasi Valid! Area: <strong>${titikValid}</strong>`);
-        else setInvalidUI(`Absen Ditolak! Anda di luar kampus. Jarak: ${jarakTerdekat}m`);
+        if (dalamRadius) {
+            setValidUI(`Lokasi Valid! Area: <strong>${titikValid}</strong>`);
+        } else {
+            setInvalidUI(`Absen Ditolak! Anda di luar kampus. Jarak: ${jarakTerdekat}m`);
+        }
     }, (err) => {
         setInvalidUI("Gagal! Izin GPS ditolak oleh HP.");
     }, { enableHighAccuracy: true, timeout: 10000 });
 }
+
 
 
         function loadSemuaMapelAbsenForPilihan() { 
@@ -9164,5 +9342,33 @@ function hapusSantriWali(idSantri) {
 <script src="qrcode.min.js"></script>
 <script src="html5-qrcode.min.js"></script>
 <script src="JsBarcode.all.min.js"></script>
+<script>
+    // 1. Memblokir klik kanan agar menu konteks tidak muncul
+    document.addEventListener('contextmenu', function(event) {
+        event.preventDefault();
+    });
+
+    // 2. Memblokir pintasan keyboard untuk Inspect dan View Source
+    document.addEventListener('keydown', function(event) {
+        // Blokir tombol F12
+        if (event.key === 'F12' || event.keyCode === 123) {
+            event.preventDefault();
+            return false;
+        }
+
+        // Blokir kombinasi tombol Ctrl + Shift + I / J / C (DevTools)
+        if (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'i' || event.key === 'J' || event.key === 'j' || event.key === 'C' || event.key === 'c')) {
+            event.preventDefault();
+            return false;
+        }
+
+        // Blokir kombinasi Ctrl + U (View Source) dan Ctrl + S (Save Page)
+        if (event.ctrlKey && (event.key === 'U' || event.key === 'u' || event.key === 'S' || event.key === 's')) {
+            event.preventDefault();
+            return false;
+        }
+    });
+</script>
+
 </body>
 </html>
