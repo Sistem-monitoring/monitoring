@@ -478,6 +478,20 @@
 <div id="splash-screen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); z-index:999999; display:flex; flex-direction:column; align-items:center; justify-content:center; transition:opacity 0.6s ease, visibility 0.6s ease;">
     <img id="splash-logo" src="icon-512.png" style="width:110px; height:110px; border-radius:24px; box-shadow:0 15px 35px rgba(0,0,0,0.2); animation: pulse 1.5s infinite alternate;">
     <h2 id="splash-title" style="margin-top:20px; color:var(--primary); font-weight:800; text-transform:uppercase; letter-spacing:2px; font-size:1.2rem;">Memuat...</h2>
+    <script>
+        // [PERBAIKAN] Failsafe anti-stuck: splash dipaksa tutup maksimal 8 detik apapun yang terjadi.
+        window.__splashSudahDitutup = false;
+        window.tutupSplashScreen = function() {
+            var splash = document.getElementById('splash-screen');
+            if (!splash || splash.style.display === 'none' || window.__splashSudahDitutup) return;
+            window.__splashSudahDitutup = true;
+            splash.style.opacity = '0';
+            splash.style.visibility = 'hidden';
+            splash.style.pointerEvents = 'none';
+            setTimeout(function(){ splash.style.display = 'none'; }, 600);
+        };
+        setTimeout(function(){ window.tutupSplashScreen(); }, 8000);
+    </script>
 </div>
 <style> @keyframes pulse { 0% { transform: scale(0.95); } 100% { transform: scale(1.05); } } </style>
 
@@ -563,6 +577,10 @@
                     <div id="profile-dropdown-menu" class="profile-dropdown-menu hidden">
                         <div class="dropdown-header-info">Role Akses: <strong id="dropdown-user-role">SUPERADMIN</strong></div>
                         <div class="dropdown-item" onclick="bukaModalEditSelfProfile()"><i class="fa-solid fa-user-gear" style="color:var(--primary);"></i><span>Edit Profil & Sandi</span></div>
+    <div class="dropdown-item" onclick="gantiInstansi()">
+        <i class="fa-solid fa-building-columns" style="color:var(--warning);"></i>
+        <span>Ganti Portal Instansi</span>
+    </div>
                         <div class="dropdown-item" onclick="triggerSyncCloudQuick()"><i class="fa-solid fa-cloud-arrow-up" style="color:var(--info);"></i><span>Kirim ke Cloud</span></div>
                         <div class="dropdown-item" onclick="triggerPullCloudQuick()"><i class="fa-solid fa-cloud-arrow-down" style="color:var(--warning);"></i><span>Tarik dari Cloud</span></div>
                         <div class="dropdown-item" onclick="bersihkanCacheApp()"><i class="fa-solid fa-arrows-rotate" style="color:var(--primary);"></i><span>Perbarui Sistem</span></div>
@@ -588,8 +606,12 @@
                             <button class="btn-primary" onclick="validasiPilihInstansi()" style="padding: 16px; border-radius: 12px; font-size: 1rem; width: 100%; font-weight: 800; margin-bottom: 12px;">AUTENTIKASI</button>
             
             <!-- TAMBAHAN TOMBOL LEWATI UNTUK SCAN QR LAMA -->
-            <button class="btn-outline" onclick="lewatiPortalInstansi()" style="padding: 12px; border-radius: 12px; font-size: 0.9rem; width: 100%; justify-content: center; color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.4);">
-                <i class="fa-solid fa-qrcode"></i> Lewati & Gunakan Scan QR
+            <button class="btn-outline" onclick="bukaScannerLoginTarikData()" style="padding: 12px; border-radius: 12px; font-size: 0.9rem; width: 100%; justify-content: center; color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.4);">
+                <i class="fa-solid fa-qrcode"></i> Scan QR Tarik Data (Admin)
+            </button>
+            <p style="font-size:0.68rem; color:rgba(255,255,255,0.55); margin-top:12px;">Autentikasi &amp; tarik data pertama kali memerlukan koneksi internet.</p>
+            <button class="btn-outline" onclick="lewatiPortalInstansi()" style="background: transparent; border: none; color: rgba(255,255,255,0.55); font-size:0.68rem; padding: 6px; width:100%; justify-content:center; text-decoration: underline; margin-top: 2px;">
+                Lewati (Database sudah ada di HP ini)
             </button>
         </div>
     </div>
@@ -635,21 +657,19 @@
 
     <button class="btn-primary" onclick="prosesLogin()" style="font-size: 0.88rem; padding: 12px; border-radius: 12px; margin-top: 5px;">MASUK SISTEM</button>
 </div>
-
-                
                 <div style="display:flex; justify-content:center; margin-top: 5px; flex-direction: column; align-items: center; gap: 5px;">
         <button class="btn-outline" style="background: transparent; color: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.4); border-radius: 20px; justify-content: center; font-size:0.75rem; padding: 8px 16px; width:auto;" onclick="bukaModalDaftarMahasiswa()">
         <i class="fa-solid fa-user-plus"></i> Pendaftaran Mandiri
     </button>
-
-    <button class="btn-outline" style="background: transparent; color: rgba(255,255,255,0.6); border: none; justify-content: center; font-size:0.7rem; padding: 4px; width:auto; text-decoration: underline;" onclick="bukaScannerLoginTarikData()">
-        <i class="fa-solid fa-qrcode"></i> Admin: QR Tarik Data
-    </button>
-    <button class="btn-outline" style="background: transparent; color: #F4E29F; border: none; justify-content: center; font-size:0.75rem; padding: 4px; width:auto; text-decoration: underline; margin-top: 10px;" onclick="gantiInstansi()">
-        <i class="fa-solid fa-building-columns"></i> Ganti Instansi Portal
+<!-- 👇 TOMBOL INSTALL PWA (OTOMATIS MUNCUL JIKA BISA DIINSTALL) 👇 -->
+<div style="display:flex; justify-content:center; margin-top: 15px; width: 100%;">
+    <button id="btn-install-pwa" class="btn-primary hidden" onclick="installPWAManual()" style="font-size: 0.85rem; padding: 14px; border-radius: 12px; background: var(--success); border: none; font-weight: bold; width: 100%; box-shadow: 0 8px 20px rgba(52, 199, 89, 0.3);">
+        <i class="fa-solid fa-download"></i> INSTALL APLIKASI KE LAYAR HP
     </button>
 </div>
 
+    <!-- QR Tarik Data dipindahkan ke layar Autentikasi Pusat Data -->
+</div>
             </div>
         </div>
 
@@ -1450,7 +1470,7 @@
 
 <div id="info-absen-lokal" style="margin-top: 15px; font-size: 0.85rem; color: #D35400; font-weight: bold; text-align: center; display: none; background: #FDEBD0; padding: 12px; border-radius: 12px; border: 1px dashed #D35400;">
     <i class="fa-solid fa-clock"></i> Waktu Klik Anda: <span id="waktu-klik-mhs"></span><br>
-    <span style="font-size:0.75rem; color:#333; font-weight:normal;">Data masih offline di HP. Buka menu Profil & tekan "Kirim ke Cloud" agar dosen bisa menarik data.</span>
+    <span style="font-size:0.75rem; color:#333; font-weight:normal;">Jika sedang offline, data tersimpan di HP dan otomatis dikirim saat koneksi kembali.</span>
 </div>
 
 
@@ -2063,7 +2083,7 @@
 <div id="area-cetak-thermal" class="hidden"></div>
 
 <!-- KODE SESUDAHNYA -->
-<div id="network-status" style="position:fixed; bottom: 85px; right: 20px; background: rgba(52, 199, 89, 0.9); color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 9999; display: flex; align-items: center; gap: 8px; backdrop-filter: blur(10px); transition: all 0.4s ease;">
+<div id="network-status" style="position:fixed; bottom: 85px; right: 20px; background: rgba(52, 199, 89, 0.9); color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 9999; display: none; align-items: center; gap: 8px; backdrop-filter: blur(10px); transition: all 0.4s ease;">
     <i class="fa-solid fa-wifi"></i> <span>Online</span>
 </div>
 <!-- MODAL QR ABSEN SESI KELAS (DOSEN) -->
@@ -2121,25 +2141,7 @@
         </div>
     </div>
 </div>
-
 <script>
-    /* Indikator Online/Offline */
-    function updateNetworkStatus() {
-        const statusEl = document.getElementById('network-status');
-        if (navigator.onLine) {
-            statusEl.style.background = 'rgba(52, 199, 89, 0.9)';
-            statusEl.innerHTML = '<i class="fa-solid fa-wifi"></i> <span>Online</span>';
-            setTimeout(() => { statusEl.style.opacity = '0'; }, 3000);
-        } else {
-            statusEl.style.background = 'rgba(255, 59, 48, 0.9)';
-            statusEl.style.opacity = '1';
-            statusEl.innerHTML = '<i class="fa-solid fa-plane-up"></i> <span>Offline Mode</span>';
-        }
-    }
-    window.addEventListener('online', updateNetworkStatus);
-    window.addEventListener('offline', updateNetworkStatus);
-    updateNetworkStatus();
-
     /* Sound Beep Mewah & Haptic Feedback Global */
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playPremiumBeep() {
@@ -3403,6 +3405,11 @@ function validasiPilihInstansi() {
     const kodeInput = document.getElementById('input-kode-instansi').value.trim();
     
     if (kodeInput === "") return alert("Kode instansi tidak boleh kosong!");
+    if (!navigator.onLine) {
+        // Autentikasi database WAJIB online karena membaca database pusat
+        if (typeof showToastOffline === 'function') { showToastOffline('Autentikasi memerlukan koneksi internet untuk membaca database pusat.'); } else { alert('Autentikasi memerlukan koneksi internet.'); }
+        return;
+    }
     if (typeof APP_INSTITUTIONS === 'undefined') return alert("File config.js tidak terbaca.");
     
     const instansiPilihan = APP_INSTITUTIONS.find(inst => inst.password_akses === kodeInput);
@@ -3768,13 +3775,129 @@ function startScannerMahasiswa() {
             return false; // Blokir akses ke soal UTS/UAS
         }
     }
-    // =========================================================================
-    // AKHIR KODE BARU: LOGIKA PENYIMPANAN DAN KALKULASI PERSENTASE KEHADIRAN
-    // =========================================================================
+    
+    // =======================================================
+// MODE JARINGAN OTOMATIS (TOMBOL ONLINE/OFFLINE DIHAPUS)
+// - Ada internet  -> ONLINE FIRST (auto-sync aktif)
+// - Tidak ada     -> OFFLINE FIRST (data tersimpan lokal)
+// - Pemberitahuan memakai TOAST (bukan pop-up alert)
+// =======================================================
+let networkToastTimer = null;
+let prevKoneksiOtomatis = navigator.onLine;
 
-// =========================================================================
+function updateNetworkIndicator(isOnline) {
+    const el = document.getElementById('network-status');
+    if (!el) return;
+    if (isOnline) {
+        el.style.display = 'none';
+    } else {
+        el.style.background = 'rgba(255, 59, 48, 0.92)';
+        el.innerHTML = '<i class="fa-solid fa-plane-slash"></i> <span>Offline — data tersimpan di HP</span>';
+        el.style.display = 'flex';
+    }
+}
 
-    /* KODE SESUDAHNYA */
+function showNetworkToast(pesan, isOnline) {
+    const el = document.getElementById('network-status');
+    if (!el) return;
+    if (networkToastTimer) { clearTimeout(networkToastTimer); networkToastTimer = null; }
+    if (isOnline) {
+        el.style.background = 'rgba(52, 199, 89, 0.92)';
+        el.innerHTML = '<i class="fa-solid fa-wifi"></i> <span>' + pesan + '</span>';
+        el.style.display = 'flex';
+        networkToastTimer = setTimeout(() => { el.style.display = 'none'; }, 5000);
+    } else {
+        el.style.background = 'rgba(255, 59, 48, 0.92)';
+        el.innerHTML = '<i class="fa-solid fa-plane-slash"></i> <span>' + pesan + '</span>';
+        el.style.display = 'flex';
+    }
+}
+
+function showToastOnline(pesan) { showNetworkToast(pesan, true); }
+function showToastOffline(pesan) { showNetworkToast(pesan, false); }
+
+// Deteksi perubahan koneksi secara OTOMATIS
+function onKoneksiBerubahOtomatis() {
+    const isOnline = navigator.onLine;
+    if (isOnline === prevKoneksiOtomatis) return;
+    prevKoneksiOtomatis = isOnline;
+    if (isOnline) {
+        jalankanAutoSync();
+        showToastOnline('Kembali ONLINE. Data di HP otomatis disinkronkan ke Cloud.');
+        if (typeof hapusNotifInternal === 'function') hapusNotifInternal('ingat_sync_offline');
+        if (typeof currentUser !== 'undefined' && currentUser && typeof sinkronisasiKeCloud === 'function') {
+            sinkronisasiKeCloud(true).catch(() => {});
+        }
+    } else {
+        hentikanAutoSync();
+        showToastOffline('Anda sedang OFFLINE. Data tersimpan di HP — jangan lupa kirim data saat online.');
+        if (typeof tambahNotifInternal === 'function') {
+            tambahNotifInternal('ingat_sync_offline', 'Sedang Offline', 'Data Anda tersimpan lokal di HP. Jangan lupa kirim data ke Cloud saat koneksi kembali.', 'fa-plane-slash', 'warning', 'triggerSyncCloudQuick()');
+        }
+    }
+}
+window.addEventListener('online', onKoneksiBerubahOtomatis);
+window.addEventListener('offline', onKoneksiBerubahOtomatis);
+
+// Mesin Latar Belakang untuk Mode Online First
+function jalankanAutoSync() {
+    if (autoSyncInterval) clearInterval(autoSyncInterval);
+    
+    // Interval jalan setiap 15 Detik (15000 ms)
+    autoSyncInterval = setInterval(() => {
+        // Hanya berjalan jika HP memiliki koneksi internet dan sudah login
+        if(navigator.onLine && currentUser) {
+            console.log("Otomatis menyinkronkan data (Mode Online First)...");
+            
+            // Panggil fungsi sinkronisasi yang sudah ada di aplikasi Anda
+            if(typeof sinkronisasiKeCloud === 'function') {
+                sinkronisasiKeCloud().then(() => {
+                    // Jika sukses kirim, langsung tarik data baru jika ada
+                    if(typeof tarikDataDariSupabase === 'function') {
+                        tarikDataDariSupabase(true); // <-- True menandakan mode "silent/otomatis" agar tidak muncul alert mengganggu
+                    }
+                }).catch(e => console.log("Gagal Auto-Sync:", e));
+            }
+        }
+    }, 15000); 
+}
+
+function hentikanAutoSync() {
+    if (autoSyncInterval) clearInterval(autoSyncInterval);
+    console.log("Auto-Sync dimatikan (Mode Offline First).");
+}
+// --- SISTEM INSTALL PWA OTOMATIS ---
+let deferredPromptInstall;
+
+// Browser menembakkan event ini jika aplikasi memenuhi syarat diinstal
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); // Cegah prompt bawaan browser muncul otomatis
+    deferredPromptInstall = e; // Simpan event-nya
+    
+    // Munculkan tombol instal buatan kita
+    const btnPWA = document.getElementById('btn-install-pwa');
+    if (btnPWA) btnPWA.classList.remove('hidden');
+});
+
+function installPWAManual() {
+    if (deferredPromptInstall) {
+        // Tampilkan dialog instalasi native dari browser
+        deferredPromptInstall.prompt();
+        
+        // Tunggu pilihan pengguna (Install atau Batal)
+        deferredPromptInstall.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                console.log('Pengguna menginstal PWA');
+            } else {
+                console.log('Pengguna membatalkan instalasi');
+            }
+            deferredPromptInstall = null;
+            // Sembunyikan tombol setelah diklik
+            document.getElementById('btn-install-pwa').classList.add('hidden');
+        });
+    }
+}
+
    async function initApp() {
     const splashTitle = document.getElementById('splash-title');
     if(splashTitle) splashTitle.innerText = "Memuat Database...";
@@ -3876,7 +3999,10 @@ function startScannerMahasiswa() {
     // ... [Lakukan hal yang sama untuk inisialisasi default lainnya sampai akhir fungsi initApp] ...
     
     loadIdentitasApp();
-
+// MODE JARINGAN OTOMATIS (mengikuti koneksi internet, tanpa tombol)
+if (navigator.onLine) { jalankanAutoSync(); } else { hentikanAutoSync(); }
+updateNetworkIndicator(navigator.onLine);
+if (!navigator.onLine) showToastOffline('Anda sedang OFFLINE. Data tersimpan di HP — jangan lupa kirim data saat online.');
     const savedSession = getDB('pondok_active_user', null);
     if (savedSession && savedSession.role) { 
         currentUser = savedSession; 
@@ -6411,6 +6537,11 @@ function batalEditPengguna() {
 }
 
     function bukaScannerLoginTarikData() {
+        if (!navigator.onLine) {
+            // Tarik data pertama kali WAJIB online
+            if (typeof showToastOffline === 'function') { showToastOffline('Tarik data memerlukan koneksi internet.'); } else { alert('Tarik data memerlukan koneksi internet.'); }
+            return;
+        }
         if (typeof Html5Qrcode === 'undefined') return alert("Library Scanner belum siap.");
         document.getElementById('qr-reader-login').style.display = 'block';
         document.getElementById('modal-scanner-login').classList.remove('hidden');
@@ -6436,6 +6567,9 @@ try {
         // --------------------------------------------------------
 
         tutupScannerLoginTarikData();
+        setDB('pondok_skip_portal', true); // QR sah = lolos portal autentikasi
+        const _portalView = document.getElementById('view-pilih-instansi');
+        if (_portalView) _portalView.classList.add('hidden');
         alert(`Berhasil menghubungkan server ${activeCloudProvider.toUpperCase()}! Menyiapkan sinkronisasi cloud...`);
         tarikDataDariSupabase();
     } else {
@@ -6507,18 +6641,24 @@ function gabungDataArray(arrayLokal, arrayCloud, primaryKey) {
 }
 
 // =========================================================================
-// 1. FUNGSI SINKRONISASI KE CLOUD (DENGAN PERSENTASE UPLOAD)
+// 1. FUNGSI SINKRONISASI KE CLOUD (DENGAN PERSENTASE UPLOAD & SILENT MODE)
 // =========================================================================
-async function sinkronisasiKeCloud() {
+async function sinkronisasiKeCloud(isSilent = false) {
     // 1. Cek Ketersediaan Konfigurasi
     if (activeCloudProvider === 'firebase') {
-        if (!firebaseConfig.url) return tambahNotifInternal('err_sync_config', 'Gagal', 'URL Firebase belum diisi.', 'fa-triangle-exclamation', 'danger', '');
+        if (!firebaseConfig.url) {
+            if (!isSilent) tambahNotifInternal('err_sync_config', 'Gagal', 'URL Firebase belum diisi.', 'fa-triangle-exclamation', 'danger', '');
+            return;
+        }
     } else {
-        if (!supabaseConfig.url || !supabaseConfig.key) return tambahNotifInternal('err_sync_config', 'Gagal', 'URL & Key Supabase belum diisi.', 'fa-triangle-exclamation', 'danger', '');
+        if (!supabaseConfig.url || !supabaseConfig.key) {
+            if (!isSilent) tambahNotifInternal('err_sync_config', 'Gagal', 'URL & Key Supabase belum diisi.', 'fa-triangle-exclamation', 'danger', '');
+            return;
+        }
     }
 
     const btn = document.getElementById('btn-sync-cloud');
-    if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> MENYIAPKAN DATA...';
+    if (btn && !isSilent) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> MENYIAPKAN DATA...';
 
     let maxRetries = 2; 
     let attempt = 0;
@@ -6572,19 +6712,16 @@ async function sinkronisasiKeCloud() {
             let santriPayload = santriGabungan;
             let usersPayload = usersGabungan;
 
-                        // Jika Firebase, hapus foto HANYA dari payload agar teks ringan
+            // Jika Firebase, hapus foto HANYA dari payload agar teks ringan
             if (activeCloudProvider === 'firebase') {
                 santriPayload = santriGabungan.map(s => { let temp = { ...s }; delete temp.foto; return temp; });
                 usersPayload = usersGabungan.map(u => { let temp = { ...u }; delete temp.foto; return temp; });
             }
 
             let yayasanBersih = getDB('pondok_yayasan', {});
-            // KODE PERBAIKAN: Perintah 'delete' dihapus agar wallpaper login & id card ikut terkirim ke cloud
-            // Gambar diizinkan masuk ke dalam variabel yayasanBersih 
 
             const payloadMerged = {
                 santri: santriPayload, users: usersPayload, yayasan: yayasanBersih,
-
                 mapel: gabungDataArray(getDB('pondok_master_mapel', []), dataCloud.mapel, 'id').filter(x => !t_mapel.includes(x.id)),
                 kelas: gabungDataArray(getDB('pondok_kelas', []), dataCloud.kelas, 'id').filter(x => !t_kelas.includes(x.id)),
                 tagihan: gabungDataArray(getDB('pondok_tagihan_denda', []), dataCloud.tagihan, 'id_tagihan').filter(x => !t_tagihan.includes(x.id_tagihan)),
@@ -6598,8 +6735,8 @@ async function sinkronisasiKeCloud() {
                 akses: getDB('pondok_akses', {}), gps: getDB('pondok_gps', {}), setting_keuangan: getDB('pondok_setting_keuangan', {}),
                 tombstone_santri: t_santri, tombstone_mapel: t_mapel, tombstone_kelas: t_kelas, tombstone_users: t_users,
                 tombstone_tagihan: t_tagihan, tombstone_izin_aktif: t_izin, tombstone_bank_mapel: t_bank, tombstone_jam_kustom: t_jam,
-        absen_pending_mhs: getDB('pondok_absen_pending_mhs', [])
-    };
+                absen_pending_mhs: getDB('pondok_absen_pending_mhs', [])
+            };
 
             const waktuKirim = new Date().toISOString();
 
@@ -6607,34 +6744,29 @@ async function sinkronisasiKeCloud() {
             if (activeCloudProvider === 'firebase') {
                 const firebaseUrl = `${fbUrl}/backup_lms/data_json.json${fbAuthParam}`;
 
-                if (btn) btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> MENGUNGGAH MASTER...`;
+                if (btn && !isSilent) btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> MENGUNGGAH MASTER...`;
                 let r1 = await fetch(firebaseUrl, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ yayasan: payloadMerged.yayasan, kelas: payloadMerged.kelas, mapel: payloadMerged.mapel, users: payloadMerged.users }) });
                 if (!r1.ok) throw new Error(`Gagal (Master): HTTP ${r1.status}`);
 
-                if (btn) btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> MENGUNGGAH DATA SANTRI...`;
+                if (btn && !isSilent) btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> MENGUNGGAH DATA SANTRI...`;
                 let r2 = await fetch(firebaseUrl, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ santri: payloadMerged.santri }) });
                 if (!r2.ok) throw new Error(`Gagal (Santri): HTTP ${r2.status}`);
 
-                if (btn) btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> MENGUNGGAH ABSENSI...`;
+                if (btn && !isSilent) btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> MENGUNGGAH ABSENSI...`;
                 let r3 = await fetch(firebaseUrl, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ absensi: payloadMerged.absensi, evaluasi: payloadMerged.evaluasi }) });
                 if (!r3.ok) throw new Error(`Gagal (Absensi): HTTP ${r3.status}`);
 
-                if (btn) btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> MENGUNGGAH LAINNYA...`;
+                if (btn && !isSilent) btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> MENGUNGGAH LAINNYA...`;
                 let r4 = await fetch(firebaseUrl, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         tagihan: payloadMerged.tagihan, tabungan: payloadMerged.tabungan, history_izin: payloadMerged.history_izin, izin_aktif: payloadMerged.izin_aktif,
                         tombstone_santri: payloadMerged.tombstone_santri, tombstone_kelas: payloadMerged.tombstone_kelas, tombstone_mapel: payloadMerged.tombstone_mapel,
                         tombstone_users: payloadMerged.tombstone_users, tombstone_tagihan: payloadMerged.tombstone_tagihan, tombstone_izin_aktif: payloadMerged.tombstone_izin_aktif,
-                        tombstone_bank_mapel: payloadMerged.tombstone_bank_mapel, tombstone_jam_kustom: 
-                        payloadMerged.tombstone_jam_kustom,
-                        // KODE PERBAIKAN
-                jam_kustom: payloadMerged.jam_kustom, bank_mapel: payloadMerged.bank_mapel, 
-                gps: payloadMerged.gps,
-                akses: payloadMerged.akses,
-                setting_keuangan: payloadMerged.setting_keuangan,
-                absen_pending_mhs: payloadMerged.absen_pending_mhs
-            })
-
+                        tombstone_bank_mapel: payloadMerged.tombstone_bank_mapel, tombstone_jam_kustom: payloadMerged.tombstone_jam_kustom,
+                        jam_kustom: payloadMerged.jam_kustom, bank_mapel: payloadMerged.bank_mapel, 
+                        gps: payloadMerged.gps, akses: payloadMerged.akses, setting_keuangan: payloadMerged.setting_keuangan,
+                        absen_pending_mhs: payloadMerged.absen_pending_mhs
+                    })
                 });
                 if (!r4.ok) throw new Error(`Gagal (Lainnya): HTTP ${r4.status}`);
 
@@ -6680,38 +6812,45 @@ async function sinkronisasiKeCloud() {
                 setDB('pondok_tombstone_bank_mapel', payloadMerged.tombstone_bank_mapel); setDB('pondok_tombstone_jam_kustom', payloadMerged.tombstone_jam_kustom);
 
                 hapusNotifInternal('absen_unsynced'); 
-                tambahNotifInternal('sync_sukses', 'Sinkronisasi Sukses', 'Semua data berhasil terkirim dan sinkron ke Cloud.', 'fa-check-double', 'success', '');
                 
-                if (typeof renderTabelSantri === 'function') renderTabelSantri();
-                if (typeof renderTabelDaftarKelas === 'function') renderTabelDaftarKelas();
-                if (typeof renderMasterMapel === 'function') renderMasterMapel();
-                if (typeof renderJamKustom === 'function') renderJamKustom();
+                // Mencegah notifikasi sukses dan render ulang tabel jika ini sync otomatis di background
+                if (!isSilent) {
+                    tambahNotifInternal('sync_sukses', 'Sinkronisasi Sukses', 'Semua data berhasil terkirim dan sinkron ke Cloud.', 'fa-check-double', 'success', '');
+                    if (typeof renderTabelSantri === 'function') renderTabelSantri();
+                    if (typeof renderTabelDaftarKelas === 'function') renderTabelDaftarKelas();
+                    if (typeof renderMasterMapel === 'function') renderMasterMapel();
+                    if (typeof renderJamKustom === 'function') renderJamKustom();
+                }
             }
 
         } catch (err) {
             console.error("Sync Error:", err);
-            if (attempt >= maxRetries) {
+            if (attempt >= maxRetries && !isSilent) {
                 tambahNotifInternal('err_sync_net', 'Koneksi Ditolak/Terputus', err.message || 'Gagal mengirim data. Periksa Rules Firebase atau URL.', 'fa-wifi', 'danger', '');
             }
         }
     }
     
-    if (btn) btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> KIRIM KE CLOUD';
+    if (btn && !isSilent) btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> KIRIM KE CLOUD';
 }
-
-
 // =========================================================================
-// 2. FUNGSI TARIK DATA DARI CLOUD (DENGAN PERSENTASE DOWNLOAD)
+// 2. FUNGSI TARIK DATA DARI CLOUD (DENGAN PERSENTASE DOWNLOAD & SILENT MODE)
 // =========================================================================
-async function tarikDataDariSupabase() {
+async function tarikDataDariSupabase(isSilent = false) {
     if (activeCloudProvider === 'firebase') {
-        if (!firebaseConfig.url) return tambahNotifInternal('err_pull_config', 'Gagal', 'URL Firebase belum diisi.', 'fa-triangle-exclamation', 'danger', '');
+        if (!firebaseConfig.url) {
+            if (!isSilent) return tambahNotifInternal('err_pull_config', 'Gagal', 'URL Firebase belum diisi.', 'fa-triangle-exclamation', 'danger', '');
+            return;
+        }
     } else {
-        if (!supabaseConfig.url || !supabaseConfig.key) return tambahNotifInternal('err_pull_config', 'Gagal', 'URL & Key Supabase belum diisi.', 'fa-triangle-exclamation', 'danger', '');
+        if (!supabaseConfig.url || !supabaseConfig.key) {
+            if (!isSilent) return tambahNotifInternal('err_pull_config', 'Gagal', 'URL & Key Supabase belum diisi.', 'fa-triangle-exclamation', 'danger', '');
+            return;
+        }
     }
     
     const btn = document.getElementById('btn-pull-cloud');
-    if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> MEMULAI UNDUHAN...';
+    if (btn && !isSilent) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> MEMULAI UNDUHAN...';
 
     try {
         let data = null;
@@ -6737,7 +6876,7 @@ async function tarikDataDariSupabase() {
         }
         
         if (data) {
-            if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> MEMPROSES INSTALASI LOKAL...`;
+            if (btn && !isSilent) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> MEMPROSES INSTALASI LOKAL...`;
             let daftarTugas = [];
         
             if (data.santri) {
@@ -6801,20 +6940,27 @@ async function tarikDataDariSupabase() {
             let operasiSimpan = daftarTugas.map(tugas => setDB(tugas.key, tugas.val));
             await Promise.all(operasiSimpan);
 
-            if (btn) btn.innerHTML = `<i class="fa-solid fa-check"></i> TARIK DATA SELESAI`;
-            tambahNotifInternal('pull_sukses_' + Date.now(), 'Berhasil Menarik Data', 'Sistem akan memuat ulang sebentar lagi.', 'fa-cloud-arrow-down', 'primary', '');
-            renderNotifInternal();
-            
-            setTimeout(() => location.reload(), 1000);
+            if (!isSilent) {
+                if (btn) btn.innerHTML = `<i class="fa-solid fa-check"></i> TARIK DATA SELESAI`;
+                tambahNotifInternal('pull_sukses_' + Date.now(), 'Berhasil Menarik Data', 'Sistem akan memuat ulang sebentar lagi.', 'fa-cloud-arrow-down', 'primary', '');
+                renderNotifInternal();
+                
+                setTimeout(() => location.reload(), 1000);
+            }
         } else {
-            tambahNotifInternal('err_pull_kosong', 'Database Kosong', 'Belum ada data cadangan tersimpan di server Cloud.', 'fa-folder-open', 'warning', '');
-            if (btn) btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> TARIK DARI CLOUD';
+            if (!isSilent) {
+                tambahNotifInternal('err_pull_kosong', 'Database Kosong', 'Belum ada data cadangan tersimpan di server Cloud.', 'fa-folder-open', 'warning', '');
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> TARIK DARI CLOUD';
+            }
         }
     } catch (err) {
-        tambahNotifInternal('err_pull_net', 'Koneksi Ditolak', err.message || 'Gagal menarik data. Periksa Rules Firebase/URL.', 'fa-wifi', 'danger', '');
-        if (btn) btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> TARIK DARI CLOUD';
+        if (!isSilent) {
+            tambahNotifInternal('err_pull_net', 'Koneksi Ditolak', err.message || 'Gagal menarik data. Periksa Rules Firebase/URL.', 'fa-wifi', 'danger', '');
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> TARIK DARI CLOUD';
+        }
     }
 }
+
 
 // =========================================================================
 // 3. FUNGSI SINKRONISASI KHUSUS FOTO (FIREBASE)
@@ -8071,11 +8217,18 @@ function klikAbsenHadirMahasiswa() {
     document.getElementById('info-absen-lokal').style.display = 'block';
     document.getElementById('waktu-klik-mhs').innerText = timeString;
 
-    if (typeof tambahNotifInternal === 'function') {
-        tambahNotifInternal('ingat_sync_absen', 'Absen Tersimpan (Offline)', 'Buka profil lalu klik Kirim ke Cloud agar dosen bisa menarik data absensi Anda.', 'fa-cloud-arrow-up', 'warning', 'triggerSyncCloudQuick()');
+    if (!navigator.onLine) {
+        // OFFLINE: cukup notifikasi toast + notif internal (tanpa pop-up)
+        if (typeof tambahNotifInternal === 'function') {
+            tambahNotifInternal('ingat_sync_absen', 'Absen Tersimpan (Offline)', 'Anda sedang offline. Data tersimpan di HP — jangan lupa kirim data ke Cloud saat koneksi kembali.', 'fa-cloud-arrow-up', 'warning', 'triggerSyncCloudQuick()');
+        }
+        if (typeof showToastOffline === 'function') showToastOffline(`Absen terekam jam ${timeString} (OFFLINE). Jangan lupa kirim data saat online.`);
+    } else {
+        // ONLINE: kirim otomatis ke Cloud di latar belakang
+        if (typeof hapusNotifInternal === 'function') hapusNotifInternal('ingat_sync_absen');
+        if (typeof sinkronisasiKeCloud === 'function') sinkronisasiKeCloud(true).catch(() => {});
+        if (typeof showToastOnline === 'function') showToastOnline(`Absen berhasil direkam jam ${timeString}.`);
     }
-
-    alert(`SUKSES: Waktu Anda (${timeString}) telah direkam.\n\nPENTING: Sistem sedang berjalan OFFLINE. Pastikan Anda menekan tombol "Kirim ke Cloud" di profil Anda agar dosen bisa memuat data ini!`);
 }
 
 async function tarikAbsenMandiriTepatWaktu() {
@@ -9172,57 +9325,57 @@ function hapusSantriWali(idSantri) {
 }
 
 
-  initApp;
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
 <!-- Script Firebase (Modular) -->
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
-
-    // ... (konfigurasi firebase kamu) ...
-
-    const app = initializeApp(firebaseConfig);
-    const messaging = getMessaging(app);
-
-    window.fcmMessaging = messaging;
-    window.fcmGetToken = getToken;
-    window.fcmOnMessage = onMessage;
-
-    // LANGSUNG JALANKAN TIMEOUT (Tanpa window.onload dan initApp)
-    setTimeout(() => {
-        if (window.fcmOnMessage) {
-            window.fcmOnMessage(window.fcmMessaging, (payload) => {
-                console.log('Pesan FCM masuk di Foreground:', payload);
-                
-                const judul = payload.notification.title;
-                const pesan = payload.notification.body;
-                
-                kirimNotifikasiLokal(judul, pesan);
-
-                if ('speechSynthesis' in window) {
-                    window.speechSynthesis.cancel();
-                    let hitungan = 0;
-                    
-                    function bicara() {
-                        if (hitungan < 10) {
-                            let utterance = new SpeechSynthesisUtterance(pesan);
-                            utterance.lang = 'id-ID';
-                            utterance.rate = 0.9;
-                            utterance.onend = function() {
-                                hitungan++;
-                                setTimeout(bicara, 1500); 
-                            };
-                            window.speechSynthesis.speak(utterance);
+    // [PERBAIKAN] Listener notifikasi Firebase dibuat AMAN (tidak memblokir aplikasi).
+    // Versi lama menginisialisasi Firebase di sini; jika konfigurasi kosong/invalid
+    // (firebaseConfig = { url:'', key:'' }) maka initializeApp() melempar error, script module
+    // gagal total, dan initApp() tidak pernah dipanggil -> aplikasi STUCK di splash screen.
+    // Sekarang inisialisasi & listener hanya dijalankan jika konfigurasi benar-benar valid.
+    (async function(){
+        try {
+            const cfg = window.firebaseConfig || {};
+            if (!cfg.apiKey || String(cfg.apiKey).length < 10) {
+                console.warn('FCM dinonaktifkan: konfigurasi Firebase belum valid.');
+                return;
+            }
+            const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
+            const { getMessaging, getToken, onMessage } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js");
+            const app = initializeApp(cfg);
+            const messaging = getMessaging(app);
+            window.fcmMessaging = messaging;
+            window.fcmGetToken = getToken;
+            window.fcmOnMessage = onMessage;
+            setTimeout(() => {
+                if (window.fcmOnMessage) {
+                    window.fcmOnMessage(window.fcmMessaging, (payload) => {
+                        console.log('Pesan FCM masuk di Foreground:', payload);
+                        const judul = payload.notification.title;
+                        const pesan = payload.notification.body;
+                        kirimNotifikasiLokal(judul, pesan);
+                        if ('speechSynthesis' in window) {
+                            window.speechSynthesis.cancel();
+                            let hitungan = 0;
+                            function bicara() {
+                                if (hitungan < 10) {
+                                    let utterance = new SpeechSynthesisUtterance(pesan);
+                                    utterance.lang = 'id-ID';
+                                    utterance.rate = 0.9;
+                                    utterance.onend = function() { hitungan++; setTimeout(bicara, 1500); };
+                                    window.speechSynthesis.speak(utterance);
+                                }
+                            }
+                            bicara();
                         }
-                    }
-                    bicara();
+                    });
                 }
-            });
+            }, 2000);
+        } catch (e) {
+            console.error('FCM gagal diinisialisasi (diabaikan agar aplikasi tetap jalan):', e);
         }
-    }, 2000); 
-    // Jalankan inisialisasi aplikasi
-    initApp();
+    })();
 </script>
 
 <!-- Script Firebase (Modular) -->
@@ -9369,6 +9522,5 @@ function hapusSantriWali(idSantri) {
         }
     });
 </script>
-
 </body>
 </html>
