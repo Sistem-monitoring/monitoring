@@ -2283,9 +2283,16 @@ const menuMaster = [
         `;
     }
 
-        function cetakElemenHTML(htmlIsiKonten, orientasiHalaman = 'portrait') {
+        function cetakElemenHTML(htmlIsiKonten, orientasiHalaman = 'portrait', ukuranKertasPaksa = null) {
     const yayasanConfig = getDB('pondok_yayasan', {});
-    const ukuranKertasDinamic = yayasanConfig.kertas_sertifikat || 'A4';
+    const ukuranKertasDinamic = ukuranKertasPaksa || yayasanConfig.kertas_sertifikat || 'A4';
+    // ═══ PERBAIKAN KERTAS: F4/Folio & semua ukuran diubah ke dimensi mm eksplisit agar nyambung dengan printer ═══
+    const petaKertasMM = { 'A3':[297,420], 'A4':[210,297], 'A5':[148,210], 'B4':[250,353], 'B5':[176,250], 'F4':[215,330], 'FOLIO':[215,330], 'LEGAL':[216,356], 'LETTER':[216,279] };
+    const dimMM = petaKertasMM[(ukuranKertasDinamic || 'A4').toString().toUpperCase()] || petaKertasMM['A4'];
+    const lebarKertasMM = (orientasiHalaman === 'landscape') ? dimMM[1] : dimMM[0];
+    const tinggiKertasMM = (orientasiHalaman === 'landscape') ? dimMM[0] : dimMM[1];
+    const ukuranKertasCSS = lebarKertasMM + 'mm ' + tinggiKertasMM + 'mm';
+    const tinggiIsiSertifikat = (tinggiKertasMM - 16) + 'mm'; // dikurangi margin @page 8mm atas & bawah
     
     const iframeLama = document.getElementById('iframe-pencetakan-aman');
     if (iframeLama) iframeLama.remove();
@@ -2309,7 +2316,7 @@ const menuMaster = [
     <title>Cetak Dokumen</title>
     <style>
         @page {
-            size: ${ukuranKertasDinamic} ${orientasiHalaman === 'landscape' ? 'landscape' : 'portrait'};
+            size: ${ukuranKertasCSS};
             margin: 8mm; /* Margin dipadatkan agar tidak memicu halaman ke-2 */
         }
         * {
@@ -2345,6 +2352,17 @@ const menuMaster = [
             max-height: 100% !important;
             object-fit: contain;
         }
+        /* ═══ PERBAIKAN CETAK KARTU: CSS SISI BELAKANG DISAMAKAN PERSIS DENGAN PREVIEW ═══ */
+        #sisi-depan-kartu, #sisi-belakang-kartu { width: 100%; height: 100%; display: flex; flex-direction: column; z-index: 1; }
+        .id-card-wrapper.kartu-belakang-saja { background: #ffffff !important; }
+        .id-back-title { font-size: 0.75rem; font-weight: bold; color: var(--primary); border-bottom: 1px solid #ccc; padding-bottom: 2px; margin-bottom: 2px; text-align: center; width: 100%; }
+        .id-back-rules { font-size: 0.52rem; line-height: 1.3; color: #222; width: 100%; text-align: justify; flex: 1; }
+        .poin-tertib { text-align: justify; padding-left: 1.2em; text-indent: -1.2em; margin-bottom: 3px; word-break: break-word; }
+        .id-back-ttd-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; margin-top: 5px; }
+        .id-back-ttd { text-align: center; font-size: 0.55rem; font-weight: bold; color: var(--primary); z-index: 2; position: relative; }
+        .id-back-ttd img { max-height: 30px; display: block; margin: 2px auto; }
+        .stempel-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.85; max-height: 50px; z-index: 1; pointer-events: none; }
+        .id-qr-back { border: 2px solid var(--primary); padding: 2px; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; margin: 0 auto; z-index: 3; }
         
         /* ATURAN TABEL AGAR RAPI & TIDAK TERPOTONG JELEK */
 
@@ -2374,13 +2392,13 @@ const menuMaster = [
         /* CSS SERTIFIKAT - DIKUNCI PAS 1 LEMBAR A4 (TIDAK JADI 2 HALAMAN) */
         .sertifikat-wrapper {
             width: 100%;
-            height: ${orientasiHalaman === 'landscape' ? '188mm' : '275mm'};
-            max-height: ${orientasiHalaman === 'landscape' ? '188mm' : '275mm'};
+            height: ${tinggiIsiSertifikat};
+            max-height: ${tinggiIsiSertifikat};
             background-color: #fff;
             background-size: cover;
             background-position: center;
-            border: 8px solid #04432A;
-            padding: 16px 24px;
+            border: 6px double #D4AF37;
+            padding: 6mm 10mm;
             text-align: center;
             font-family: 'Times New Roman', serif;
             position: relative;
@@ -2394,12 +2412,13 @@ const menuMaster = [
             page-break-after: avoid;
         }
         .sertifikat-header img {
-            width: 70px;
-            height: 70px;
-            margin-bottom: 4px;
+            width: 17mm;
+            height: 17mm;
+            margin-bottom: 2mm;
+            object-fit: contain;
         }
         .sertifikat-title {
-            font-size: 1.8rem;
+            font-size: 17pt;
             font-weight: bold;
             color: #04432A;
             text-transform: uppercase;
@@ -2407,7 +2426,7 @@ const menuMaster = [
             letter-spacing: 2px;
         }
         .sertifikat-subtitle {
-            font-size: 0.95rem;
+            font-size: 9pt;
             color: #333;
             margin-bottom: 10px;
             text-transform: uppercase;
@@ -2415,40 +2434,42 @@ const menuMaster = [
             font-weight: bold;
         }
         .sertifikat-body {
-            font-size: 1.05rem;
-            line-height: 1.5;
+            font-size: 10pt;
+            line-height: 1.4;
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: center;
         }
         .sertifikat-name {
-            font-size: 2.1rem;
             font-weight: bold;
             font-style: italic;
             color: #000;
-            border-bottom: 2px solid #ccc;
+            border-bottom: 1.5px solid #999;
             display: inline-block;
-            padding: 0 20px;
-            margin: 8px auto;
+            padding: 0 8mm;
+            margin: 2mm auto;
             text-transform: uppercase;
+            line-height: 1.25;
         }
         .sertifikat-predikat {
-            font-size: 1.25rem;
+            font-size: 11.5pt;
             font-weight: bold;
             color: #D4AF37;
             margin: 8px 0;
         }
+        .sertifikat-body p { margin: 1.2mm 0; font-size: 10pt !important; }
         .sertifikat-footer {
-            margin-top: 10px;
+            margin-top: 3mm;
             display: flex;
             justify-content: flex-end;
-            padding-right: 30px;
+            padding-right: 8mm;
             text-align: center;
         }
+        .sertifikat-footer p { font-size: 9pt !important; margin: 0 0 1mm 0 !important; }
         .sertifikat-ttd img {
-            max-height: 50px;
-            margin: 4px auto;
+            max-height: 13mm;
+            margin: 1mm auto;
             display: block;
         }
 
@@ -2474,14 +2495,14 @@ const menuMaster = [
             content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 50%;
             /* Mempertahankan Gradasi Warna */
             background: linear-gradient(135deg, var(--primary), var(--primary-light)) !important;
-            clip-path: polygon(0 0, 100% 0, 100% 45%, 0% 100%); z-index: 0;
+            clip-path: polygon(0 0, 100% 0, 100% 45%, 0% 100%); z-index: -2;
         }
         .id-card-wrapper.portrait::before { height: 42%; clip-path: polygon(0 0, 100% 0, 100% 65%, 0% 100%); }
         
         .id-card-wrapper::after {
             content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 50%;
             background: var(--accent) !important;
-            clip-path: polygon(0 0, 100% 0, 100% 50%, 0% 105%); z-index: -1;
+            clip-path: polygon(0 0, 100% 0, 100% 50%, 0% 105%); z-index: -3;
         }
         .id-card-wrapper.portrait::after { height: 42%; clip-path: polygon(0 0, 100% 0, 100% 70%, 0% 105%); }
 
@@ -2645,7 +2666,9 @@ const menuMaster = [
         }
         
         let htmlYangDicetak = `<div style="display:flex; flex-direction:column; align-items:center; width:100%;">${clone.outerHTML}</div>`;
-        cetakElemenHTML(htmlYangDicetak, orientasi);
+        // ═══ PERBAIKAN CETAK KARTU: kartu selalu dicetak di kertas A4 PORTRAIT agar tidak geser/kacau ═══
+        if (idElemen === 'area-cetak-kartu') { cetakElemenHTML(htmlYangDicetak, 'portrait', 'A4'); }
+        else { cetakElemenHTML(htmlYangDicetak, orientasi); }
     } else { 
         alert("Elemen tidak ditemukan untuk dicetak."); 
     }
@@ -2721,7 +2744,7 @@ const menuMaster = [
                 const siblingImg = canvas.nextElementSibling; if(siblingImg && siblingImg.tagName === 'IMG') siblingImg.remove();
                 canvas.parentNode.replaceChild(img, canvas);
             });
-            cetakElemenHTML(containerTemp.innerHTML, 'portrait'); 
+            cetakElemenHTML(containerTemp.innerHTML, 'portrait', 'A4'); 
             containerTemp.remove();
         }, 600);
     }
@@ -3313,6 +3336,7 @@ function renderNotifInternal() {
             currentUser = matchedUser;
            setDB('pondok_active_user', currentUser); 
 setDB('pondok_active_tab', 'view-dashboard');
+try { localStorage.setItem('sms_session_backup', JSON.stringify({ user: currentUser, tab: 'view-dashboard' })); } catch(e) {}
             document.getElementById('login-error').classList.add('hidden');
              // 👇 KODE OTOMATIS FULL SCREEN SAAT KLIK LOGIN 👇
             if (document.documentElement.requestFullscreen) {
@@ -3934,7 +3958,16 @@ function installPWAManual() {
         
         // =========================================================================
 
-              let instansiAktif = getDB('pondok_instansi_aktif', null);
+              // ═══ PERBAIKAN SESI PWA: SALIN SESI KE LOCALSTORAGE (KEBAL SISTEM HARIAN) ═══
+        try {
+            if (!getDB('pondok_active_user', null) && localStorage.getItem('sms_session_backup')) {
+                const snap = JSON.parse(localStorage.getItem('sms_session_backup'));
+                if (snap && snap.user) { window.dbCache['pondok_active_user'] = snap.user; await localforage.setItem('pondok_active_user', snap.user); }
+                if (snap && snap.tab) { window.dbCache['pondok_active_tab'] = snap.tab; await localforage.setItem('pondok_active_tab', snap.tab); }
+            }
+        } catch(e) { console.log('Pemulihan sesi backup dilewati:', e); }
+        // ════════════════════════════════════════════════════════════════════════
+        let instansiAktif = getDB('pondok_instansi_aktif', null);
        let skipPortal = getDB('pondok_skip_portal', false); 
         
         if (!instansiAktif && !skipPortal) {
@@ -4007,10 +4040,9 @@ if (!navigator.onLine) showToastOffline('Anda sedang OFFLINE. Data tersimpan di 
     if (savedSession && savedSession.role) { 
         currentUser = savedSession; 
         masukKeSistemSetelahLogin(false); 
-    
+    }
 mulaiWatchdogJadwal();
 initSupabaseRealtimeListener();
-}
 }
                
         // ⬆️ SAMPAI SINI ⬆️
@@ -4282,6 +4314,45 @@ document.getElementById('setting-font-sertifikat').value = data.font_sertifikat 
                 if(document.getElementById('splash-title')) document.getElementById('splash-title').innerText = data.pondok || "Memuat...";
             }
         }
+        // ═══ PERBAIKAN ICON PWA: GUNAKAN LOGO INSTANSI SEBAGAI ICON APLIKASI ═══
+        terapkanIconPWADariLogoInstansi();
+    }
+
+    // Mengubah seluruh icon aplikasi (favicon, apple-touch, manifest PWA) menjadi logo instansi
+    function terapkanIconPWADariLogoInstansi() {
+        const data = getDB('pondok_yayasan', null);
+        const namaApp = (data && data.pondok && data.pondok.trim() !== '') ? data.pondok : 'SMS';
+        const logoSrc = (data && data.logo && data.logo.trim() !== '') ? data.logo : null;
+        try { document.title = namaApp; } catch(e) {}
+        const elNama = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (elNama) elNama.setAttribute('content', namaApp);
+        const elNama2 = document.querySelector('meta[name="application-name"]'); if (elNama2) elNama2.setAttribute('content', namaApp);
+        if (!logoSrc) return; // Belum ada logo instansi -> pakai icon bawaan
+        // 1. Favicon & Apple Touch Icon langsung memakai logo instansi
+        document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]').forEach(link => { link.setAttribute('href', logoSrc); });
+        // 2. Manifest PWA dinamis -> saat diinstal, icon Android/Apple memakai logo instansi
+        const gambar = new Image();
+        gambar.onload = function() {
+            try {
+                const ukuran = [192, 512];
+                const icons = ukuran.map(sz => {
+                    const c = document.createElement('canvas'); c.width = sz; c.height = sz;
+                    const ctx = c.getContext('2d');
+                    ctx.fillStyle = '#04432A'; ctx.fillRect(0, 0, sz, sz); // latar warna tema
+                    const sisi = Math.min(gambar.width, gambar.height);
+                    const sx = (gambar.width - sisi) / 2, sy = (gambar.height - sisi) / 2;
+                    ctx.drawImage(gambar, sx, sy, sisi, sisi, 0, 0, sz, sz);
+                    return { src: c.toDataURL('image/png'), sizes: sz + 'x' + sz, type: 'image/png', purpose: 'any' };
+                });
+                const manifest = { name: namaApp, short_name: namaApp, start_url: '.', scope: '.', display: 'standalone', background_color: '#04432A', theme_color: '#04432A', icons: icons };
+                const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+                const urlManifest = URL.createObjectURL(blob);
+                let linkManifest = document.querySelector('link[rel="manifest"]');
+                if (!linkManifest) { linkManifest = document.createElement('link'); linkManifest.rel = 'manifest'; document.head.appendChild(linkManifest); }
+                linkManifest.setAttribute('href', urlManifest);
+            } catch(e) { console.log('Manifest dinamis dilewati:', e); }
+        };
+        gambar.onerror = function() { console.log('Logo instansi gagal dimuat untuk icon PWA.'); };
+        gambar.src = logoSrc;
     }
 
 
@@ -4299,6 +4370,7 @@ document.getElementById('setting-font-sertifikat').value = data.font_sertifikat 
         if (currentUser) { setDB('pondok_active_user', currentUser); 
         
         setDB('pondok_active_tab', 'view-dashboard'); 
+        try { localStorage.setItem('sms_session_backup', JSON.stringify({ user: currentUser, tab: 'view-dashboard' })); } catch(e) {}
         document.getElementById('login-error').classList.add('hidden'); 
          if (document.documentElement.requestFullscreen) {
                 document.documentElement.requestFullscreen().catch(e => console.log("Fullscreen ditolak browser:", e));
@@ -4310,9 +4382,10 @@ document.getElementById('setting-font-sertifikat').value = data.font_sertifikat 
     function prosesLogout() { 
     removeDB('pondok_active_user'); 
     removeDB('pondok_active_tab'); 
+    try { localStorage.removeItem('sms_session_backup'); } catch(e) {}
     location.reload(); 
 }
-    function switchTab(viewId) { document.querySelectorAll('.page-view').forEach(el => el.classList.add('hidden')); document.getElementById(viewId).classList.remove('hidden'); setDB('pondok_active_tab', viewId); bukaFungsiTabSesuaiTujuan(viewId); }
+    function switchTab(viewId) { document.querySelectorAll('.page-view').forEach(el => el.classList.add('hidden')); document.getElementById(viewId).classList.remove('hidden'); setDB('pondok_active_tab', viewId); try { const s = JSON.parse(localStorage.getItem('sms_session_backup') || 'null'); if (s && s.user) localStorage.setItem('sms_session_backup', JSON.stringify({ user: s.user, tab: viewId })); } catch(e) {} bukaFungsiTabSesuaiTujuan(viewId); }
     function openSubMenu(id) { switchTab(id); } function closeSubMenu() { if(html5QrcodeScanner) html5QrcodeScanner.stop(); if(scannerIzin) scannerIzin.stop(); switchTab('view-dashboard'); }
     
     function renderMenuBerdasarkanAkses() { 
@@ -4765,7 +4838,7 @@ function bukaModalSertifikat(nis) {
             </div>
             <div class="sertifikat-body">
                 <p>Diberikan Kepada:</p>
-                <div class="sertifikat-name" style="font-size:${sizeFontSertifikat}px; margin:8px 0; padding:0 10px;">${santri.nama}</div>
+                <div class="sertifikat-name" style="font-size:${Math.round(sizeFontSertifikat * 0.75)}pt; margin:2mm 0; padding:0 8mm;">${santri.nama}</div>
                 <p>NIS: ${santri.nis} ${santri.nik ? ' | NIK: ' + santri.nik : ''}</p>
                 <p style="margin-top: 20px;">${yayasan.teks_lulus || 'Telah mengikuti seluruh program pembelajaran dengan baik dan dinyatakan:'}</p>
                 <div class="sertifikat-predikat">LULUS DENGAN PREDIKAT: ${evaluasi.predikat.toUpperCase()}</div>
@@ -7281,7 +7354,7 @@ async function kirimPesanFCMKeServer(targetToken, title, body, customData = {}) 
                 <tr><td style="padding:8px; border:1px solid #000; font-weight:bold;">Pengajar (Ustadz)</td><td style="padding:8px; border:1px solid #000;">${m.ustadz_nama}</td></tr>
                 <tr><td style="padding:8px; border:1px solid #000; font-weight:bold;">Kelas Terlibat</td><td style="padding:8px; border:1px solid #000;">${namaKelasTerpilih.join(', ')}</td></tr>
                 <tr><td style="padding:8px; border:1px solid #000; font-weight:bold;">Jadwal / Waktu</td><td style="padding:8px; border:1px solid #000;">${m.hari ? `${m.hari}, ${m.jam_mulai} - ${m.jam_selesai}` : 'Waktu Fleksibel (Menunggu Arahan / Tanpa Hari Tetap)'}</td></tr>
-                <tr><td style="padding:8px; border:1px solid #000; font-weight:bold;">Status Sistem</td><style="padding:8px; border:1px solid #000; color:green; font-weight:bold;">TERVALIDASI / SIAP MULAI</td></tr>
+                <tr><td style="padding:8px; border:1px solid #000; font-weight:bold;">Status Sistem</td><td style="padding:8px; border:1px solid #000; color:green; font-weight:bold;">TERVALIDASI / SIAP MULAI</td></tr>
             </table>
             <p style="font-size:11px; text-align:center; margin-top:30px; font-style:italic;">Dokumen ini dicetak otomatis dari Sistem Manajemen Instansi.</p>
         `;
@@ -8627,7 +8700,7 @@ function cetakKolektifF4Gabung(orientasi = 'portrait') {
             svg.parentNode.replaceChild(img, svg);
         });
 
-        cetakElemenHTML(containerTemp.innerHTML, 'portrait');
+        cetakElemenHTML(containerTemp.innerHTML, 'portrait', 'A4');
         containerTemp.remove();
     }, 600);
 }
