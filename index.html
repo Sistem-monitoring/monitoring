@@ -3993,9 +3993,36 @@ function installPWAManual() {
         let cekAkses = getDB('pondok_akses', defaultAkses); 
         setDB('pondok_akses', cekAkses);
 
+        // ═══ PERBAIKAN REFRESH (ANTI BALIK KE LOGIN): PULIHKAN SESI SEGERA SETELAH DATABASE SELESAI DIMUAT ═══
+        try {
+            const sesiTersimpan = getDB('pondok_active_user', null);
+            if (sesiTersimpan && sesiTersimpan.role) {
+                currentUser = sesiTersimpan;
+                window.__smsSesiDipulihkan = true;
+                masukKeSistemSetelahLogin(false);
+            }
+        } catch(eSesi) {
+            console.error('Pemulihan sesi awal gagal, akan dicoba ulang di akhir initApp:', eSesi);
+            window.__smsSesiDipulihkan = false;
+        }
+        // ══════════════════════════════════════════════════════════════════════════════════════════════════
+
     } catch (err) {
         console.error("Gagal load dari IndexedDB:", err);
     }
+    // ═══ PERBAIKAN REFRESH: JALUR DARURAT - PULIHKAN SESI DARI BACKUP LOCALSTORAGE JIKA INDEXEDDB BERMASALAH ═══
+    if (!window.__smsSesiDipulihkan) {
+        try {
+            if (!getDB('pondok_active_user', null) && localStorage.getItem('sms_session_backup')) {
+                const snapDarurat = JSON.parse(localStorage.getItem('sms_session_backup'));
+                if (snapDarurat && snapDarurat.user) { window.dbCache['pondok_active_user'] = snapDarurat.user; }
+                if (snapDarurat && snapDarurat.tab) { window.dbCache['pondok_active_tab'] = snapDarurat.tab; }
+            }
+            const sesiDarurat = getDB('pondok_active_user', null);
+            if (sesiDarurat && sesiDarurat.role) { currentUser = sesiDarurat; window.__smsSesiDipulihkan = true; masukKeSistemSetelahLogin(false); }
+        } catch(eDarurat) { console.error('Jalur darurat pemulihan sesi gagal:', eDarurat); }
+    }
+    // ════════════════════════════════════════════════════════════════════════════════════════════════════
     // ...
 
 
@@ -4031,13 +4058,15 @@ function installPWAManual() {
     
     // ... [Lakukan hal yang sama untuk inisialisasi default lainnya sampai akhir fungsi initApp] ...
     
-    loadIdentitasApp();
+    try { loadIdentitasApp(); } catch(eIdentitas) { console.error('loadIdentitasApp dilewati:', eIdentitas); }
 // MODE JARINGAN OTOMATIS (mengikuti koneksi internet, tanpa tombol)
+try {
 if (navigator.onLine) { jalankanAutoSync(); } else { hentikanAutoSync(); }
 updateNetworkIndicator(navigator.onLine);
 if (!navigator.onLine) showToastOffline('Anda sedang OFFLINE. Data tersimpan di HP — jangan lupa kirim data saat online.');
+} catch(eJaringan) { console.error('Inisialisasi jaringan dilewati agar sesi tetap dipulihkan:', eJaringan); }
     const savedSession = getDB('pondok_active_user', null);
-    if (savedSession && savedSession.role) { 
+    if (savedSession && savedSession.role && !window.__smsSesiDipulihkan) { 
         currentUser = savedSession; 
         masukKeSistemSetelahLogin(false); 
     }
@@ -4210,8 +4239,9 @@ function registerServiceWorker() {
         const lastTab = getDB('pondok_active_tab', 'view-dashboard');
 
         document.querySelectorAll('.page-view').forEach(el => el.classList.add('hidden'));
-        if (lastTab === 'view-dashboard' || lastTab === 'view-login') document.getElementById('view-dashboard').classList.remove('hidden');
-        else { document.getElementById(lastTab).classList.remove('hidden'); bukaFungsiTabSesuaiTujuan(lastTab); }
+        const targetTabEl = document.getElementById(lastTab);
+        if (lastTab === 'view-dashboard' || lastTab === 'view-login' || !targetTabEl) { document.getElementById('view-dashboard').classList.remove('hidden'); }
+        else { try { targetTabEl.classList.remove('hidden'); bukaFungsiTabSesuaiTujuan(lastTab); } catch(eTab) { console.error('Gagal membuka tab terakhir, kembali ke dashboard:', eTab); document.getElementById('view-dashboard').classList.remove('hidden'); } }
     }
 
         function bukaFungsiTabSesuaiTujuan(lastTab) {
